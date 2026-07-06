@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: marten
+    env: node
+    rootDir: .
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: AUTH_GITHUB_ID
+        sync: false
+      - key: AUTH_GITHUB_SECRET
+        sync: false
+      - key: AUTH_GOOGLE_ID
+        sync: false
+      - key: AUTH_GOOGLE_SECRET
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: STORAGE_ACCESS_KEY
+        sync: false
+      - key: STORAGE_SECRET_KEY
+        sync: false
+
+  - type: worker
+    name: marten-worker
+    env: node
+    rootDir: .
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx tsx src/lib/worker.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: STORAGE_ACCESS_KEY
+        sync: false
+      - key: STORAGE_SECRET_KEY
+        sync: false
+      - key: WORKER_POLL_INTERVAL_MS
+        value: "5000"
+      - key: WORKER_BATCH_SIZE
+        value: "5"
+    plan: starter
