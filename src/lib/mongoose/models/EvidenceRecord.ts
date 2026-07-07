@@ -11,6 +11,7 @@ export type EvidenceType =
 // ─── Interface ───────────────────────────────────────────────────────────────
 
 export interface IEvidenceRecord {
+  _id?: Types.ObjectId;
   investigationId: Types.ObjectId;
   type: EvidenceType;
   storageKey: string;
@@ -23,6 +24,7 @@ export interface IEvidenceRecord {
 
 export interface IEvidenceRecordDocument extends IEvidenceRecord, Document {
   _id: Types.ObjectId;
+  id: string;
 }
 
 // ─── Schema ──────────────────────────────────────────────────────────────────

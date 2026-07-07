@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
 import { investigationRepo } from "@/lib/repositories/investigation.repository";
@@ -28,7 +27,7 @@ export async function GET(
       );
     }
 
-    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
+    const inv = investigation;
 
     if (inv.userId?.toString() !== session.user.id) {
       return NextResponse.json(

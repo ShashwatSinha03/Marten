@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
 import { investigationRepo } from "@/lib/repositories/investigation.repository";
@@ -35,7 +34,7 @@ export async function GET(
       );
     }
 
-    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
+    const inv = investigation;
 
     // Ensure the user owns this investigation.
     if (inv.userId?.toString() !== session.user.id) {
@@ -54,7 +53,7 @@ export async function GET(
     const findingCount = (inv.report?.findings?.length) ?? 0;
 
     const investigationData = {
-      id: inv._id.toString(),
+      id: inv._id!.toString(),
       url: inv.url,
       normalizedUrl: inv.normalizedUrl,
       depth: inv.depth,

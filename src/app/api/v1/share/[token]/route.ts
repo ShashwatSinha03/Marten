@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import { type NextRequest, NextResponse } from "next/server";
 import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import type { ApiResponse, ReportData } from "@/types";
@@ -40,11 +39,11 @@ export async function GET(
       );
     }
 
-    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
+    const inv = investigation;
 
     const reportData: ReportData = {
       id: report.reportId,
-      investigationId: inv._id.toString(),
+      investigationId: inv._id!.toString(),
       summary: report.summary,
       overallScore: report.overallScore,
       findingCount: report.findingCount,
@@ -58,7 +57,9 @@ export async function GET(
         url: inv.url,
         depth: inv.depth as "quick" | "standard",
         duration: 0,
-        completedAt: inv.completedAt?.toISOString?.() ?? inv.completedAt ?? "",
+        completedAt: inv.completedAt instanceof Date
+          ? inv.completedAt.toISOString()
+          : inv.completedAt ?? "",
       },
     };
 

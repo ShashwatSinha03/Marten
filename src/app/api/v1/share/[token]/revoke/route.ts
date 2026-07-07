@@ -1,8 +1,8 @@
-import { Types } from "mongoose";
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
 import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import type { ApiResponse } from "@/types";
+import type { IReport, IShareLink } from "@/lib/mongoose/models/Investigation";
 
 export async function POST(
   _request: NextRequest,
@@ -36,16 +36,20 @@ export async function POST(
       );
     }
 
-    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
+    const inv = investigation;
 
     // Find and revoke the share link in the embedded array.
-    const report = inv.report;
-    const shareLinks = (report.shareLinks ?? []).map(
-      (sl: { token: string; isActive?: boolean }) =>
+    const report = inv.report!;
+    const shareLinks: IShareLink[] = report.shareLinks.map(
+      (sl) =>
         sl.token === token ? { ...sl, isActive: false } : sl,
     );
-    const updatedReport = { ...report, shareLinks, updatedAt: new Date() };
-    await investigationRepo.saveReport(inv._id.toString(), updatedReport);
+    const updatedReport: IReport = {
+      ...report,
+      shareLinks,
+      updatedAt: new Date(),
+    };
+    await investigationRepo.saveReport(inv._id!.toString(), updatedReport);
 
     const response: ApiResponse<{ revoked: boolean }> = {
       data: { revoked: true },

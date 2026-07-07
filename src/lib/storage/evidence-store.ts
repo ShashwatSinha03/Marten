@@ -1,6 +1,7 @@
 import { evidenceRepo } from "@/lib/repositories/evidence.repository";
 import { storage } from "./s3";
 import { logger } from "@/lib/logger";
+import type { EvidenceType } from "@/lib/mongoose/models/EvidenceRecord";
 
 const EVIDENCE_KEY_PATTERN = "investigations/{investigationId}/{type}/{sequence}-{name}";
 
@@ -115,7 +116,7 @@ export class EvidenceStore {
 
   async #createRecord(
     investigationId: string,
-    type: string,
+    type: EvidenceType,
     storageKey: string,
     mimeType: string,
     size: number,
@@ -131,7 +132,7 @@ export class EvidenceStore {
     });
 
     logger.debug("Evidence record created", {
-      id: record.id,
+      id: record._id.toString(),
       type,
       investigationId,
       size,

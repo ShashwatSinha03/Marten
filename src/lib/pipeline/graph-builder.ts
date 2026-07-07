@@ -137,7 +137,7 @@ export class ProductGraphBuilder {
 
     await investigationRepo.saveGraph(investigationId, {
       nodes,
-      edges,
+      edges: edges.map(e => ({ ...e, metadata: e.metadata ?? {} })),
       quality,
       truncated,
       metadata: graphData.metadata,

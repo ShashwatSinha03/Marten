@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
 import { investigationRepo } from "@/lib/repositories/investigation.repository";
+import type { InvestigationStatus } from "@/lib/mongoose/models/Investigation";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
     const pageSize = Math.min(50, Math.max(1, parseInt(url.searchParams.get("pageSize") ?? "10", 10)));
-    const status = url.searchParams.get("status") ?? undefined;
+    const status = (url.searchParams.get("status") ?? undefined) as InvestigationStatus | undefined;
 
     const result = await investigationRepo.findByUserId(session.user.id, { page, pageSize, status });
 

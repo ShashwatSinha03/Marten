@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import { evidenceRepo } from "@/lib/repositories/evidence.repository";
 import { emitter } from "@/lib/sse/emitter";
@@ -62,9 +61,9 @@ export class InvestigationOrchestrator {
 
     // Enqueue the pipeline as a background job.
     investigationQueue
-      .enqueue(() => this.#runPipeline(investigation.id))
+      .enqueue(() => this.#runPipeline(investigation._id.toString()))
       .catch((err) => {
-        logger.error({ err, investigationId: investigation.id }, "Pipeline failed");
+        logger.error({ err, investigationId: investigation._id.toString() }, "Pipeline failed");
       });
 
     logger.info("Investigation started", {
@@ -326,10 +325,10 @@ export class InvestigationOrchestrator {
       throw new Error(`Investigation not found: ${investigationId}`);
     }
 
-    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
+    const inv = investigation;
 
     return {
-      investigationId: inv._id.toString(),
+      investigationId: inv._id!.toString(),
       url: inv.normalizedUrl,
       depth: inv.depth as "quick" | "standard",
       status: inv.status as PipelineContext["status"],

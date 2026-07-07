@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       shareLinks: [...(report.shareLinks ?? []), shareLink],
       updatedAt: now,
     };
-    await investigationRepo.saveReport(investigation.id, updatedReport);
+    await investigationRepo.saveReport(investigation._id!.toString(), updatedReport);
 
     const response: ApiResponse<{ token: string; url: string; expiresAt: string | null }> = {
       data: {

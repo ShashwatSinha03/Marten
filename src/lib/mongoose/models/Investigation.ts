@@ -125,6 +125,7 @@ export interface IReport {
 }
 
 export interface IInvestigation {
+  _id?: Types.ObjectId;
   url: string;
   normalizedUrl: string;
   depth: InvestigationDepth;
@@ -148,6 +149,7 @@ export interface IInvestigationDocument
   extends IInvestigation,
     Document {
   _id: Types.ObjectId;
+  id: string;
 }
 
 // ─── Sub-schemas ─────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { logger } from "@/lib/logger";
 import config from "@/lib/config";
 import type { EvidenceItem } from "@/types";
 import type { EvidenceBundle } from "./types";
+import type { IEvidenceRecordDocument } from "@/lib/mongoose/models/EvidenceRecord";
 
 /**
  * EvidenceCollector uses Playwright to capture screenshots, DOM
@@ -220,15 +221,7 @@ export class EvidenceCollector {
     }
   }
 
-  #toEvidenceItem(record: {
-    id: string;
-    type: string;
-    storageKey: string;
-    mimeType: string;
-    size: number;
-    metadata: unknown;
-    createdAt: Date;
-  }): EvidenceItem {
+  #toEvidenceItem(record: IEvidenceRecordDocument): EvidenceItem {
     return {
       id: record.id,
       type: record.type as EvidenceItem["type"],
@@ -236,7 +229,7 @@ export class EvidenceCollector {
       mimeType: record.mimeType,
       size: record.size,
       metadata: (record.metadata as Record<string, unknown>) ?? {},
-      createdAt: record.createdAt.toISOString(),
+      createdAt: record.createdAt!.toISOString(),
     };
   }
 }
