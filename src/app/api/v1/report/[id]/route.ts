@@ -1,7 +1,8 @@
+import { Types } from "mongoose";
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import prisma from "@/lib/prisma";
-import type { ReportData, Finding } from "@/types";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
+import type { ReportData } from "@/types";
 
 export async function GET(
   _request: NextRequest,
@@ -18,60 +19,29 @@ export async function GET(
 
     const { id } = await params;
 
-    const report = await prisma.report.findUnique({
-      where: { id },
-    });
+    const investigation = await investigationRepo.findByReportId(id);
 
-    if (!report) {
+    if (!investigation || !investigation.report) {
       return NextResponse.json(
         { error: { code: "NOT_FOUND", message: "Report not found" } },
         { status: 404 },
       );
     }
 
-    const investigation = await prisma.investigation.findUnique({
-      where: { id: report.investigationId },
-      select: { id: true, url: true, depth: true, userId: true, completedAt: true },
-    });
+    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
 
-    if (!investigation) {
-      return NextResponse.json(
-        { error: { code: "NOT_FOUND", message: "Investigation not found" } },
-        { status: 404 },
-      );
-    }
-
-    if (investigation.userId !== session.user.id) {
+    if (inv.userId?.toString() !== session.user.id) {
       return NextResponse.json(
         { error: { code: "FORBIDDEN", message: "Not authorized" } },
         { status: 403 },
       );
     }
 
-    const findings = await prisma.finding.findMany({
-      where: { investigationId: report.investigationId },
-      orderBy: [{ severity: "asc" }, { createdAt: "desc" }],
-    });
-
-    const mappedFindings: Finding[] = findings.map((f) => ({
-      id: f.id,
-      investigationId: f.investigationId,
-      title: f.title,
-      description: f.description,
-      severity: f.severity as Finding["severity"],
-      category: f.category as Finding["category"],
-      confidence: f.confidence,
-      source: f.source as Finding["source"],
-      evidenceRefs: (f.evidenceRefs as unknown as Finding["evidenceRefs"]) ?? [],
-      metadata: (f.metadata as Record<string, unknown>) ?? undefined,
-      isLowConfidence: f.isLowConfidence,
-      fingerprint: f.fingerprint ?? undefined,
-      createdAt: f.createdAt.toISOString(),
-    }));
+    const report = investigation.report;
 
     const reportData: ReportData = {
-      id: report.id,
-      investigationId: report.investigationId,
+      id: report.reportId,
+      investigationId: inv._id.toString(),
       summary: report.summary,
       overallScore: report.overallScore,
       findingCount: report.findingCount,
@@ -80,12 +50,12 @@ export async function GET(
       mediumCount: report.mediumCount,
       lowCount: report.lowCount,
       infoCount: report.infoCount,
-      findings: mappedFindings,
+      findings: (report.findings ?? []) as unknown as ReportData["findings"],
       metadata: {
-        url: investigation.url,
-        depth: investigation.depth as "quick" | "standard",
+        url: inv.url,
+        depth: inv.depth as "quick" | "standard",
         duration: 0,
-        completedAt: investigation.completedAt?.toISOString() ?? "",
+        completedAt: inv.completedAt instanceof Date ? inv.completedAt.toISOString() : inv.completedAt ?? "",
       },
     };
 

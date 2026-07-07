@@ -1,6 +1,7 @@
+import { Types } from "mongoose";
 import { type NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import type { ApiResponse, ReportData, Finding } from "@/types";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
+import type { ApiResponse, ReportData } from "@/types";
 
 export async function GET(
   _request: NextRequest,
@@ -9,71 +10,41 @@ export async function GET(
   try {
     const { token } = await params;
 
-    const shareLink = await prisma.shareLink.findUnique({
-      where: { token },
-    });
+    const investigation = await investigationRepo.findByShareToken(token);
 
-    if (!shareLink || !shareLink.isActive) {
+    if (!investigation || !investigation.report) {
       return NextResponse.json(
         { error: { code: "NOT_FOUND", message: "Share link not found or has been revoked" } },
         { status: 404 },
       );
     }
 
-    if (shareLink.expiresAt && new Date() > shareLink.expiresAt) {
+    // Find the matching share link in the report.
+    const report = investigation.report;
+    const shareLink = (report.shareLinks ?? []).find(
+      (sl: { token: string; isActive: boolean; expiresAt?: Date }) =>
+        sl.token === token && sl.isActive !== false,
+    );
+
+    if (!shareLink) {
+      return NextResponse.json(
+        { error: { code: "NOT_FOUND", message: "Share link not found or has been revoked" } },
+        { status: 404 },
+      );
+    }
+
+    if (shareLink.expiresAt && new Date() > new Date(shareLink.expiresAt)) {
       return NextResponse.json(
         { error: { code: "EXPIRED", message: "Share link has expired" } },
         { status: 410 },
       );
     }
 
-    const report = await prisma.report.findUnique({
-      where: { id: shareLink.reportId },
-    });
-
-    if (!report) {
-      return NextResponse.json(
-        { error: { code: "NOT_FOUND", message: "Report not found" } },
-        { status: 404 },
-      );
-    }
-
-    const investigation = await prisma.investigation.findUnique({
-      where: { id: report.investigationId },
-      select: { url: true, depth: true, completedAt: true },
-    });
-
-    if (!investigation) {
-      return NextResponse.json(
-        { error: { code: "NOT_FOUND", message: "Investigation not found" } },
-        { status: 404 },
-      );
-    }
-
-    const findings = await prisma.finding.findMany({
-      where: { investigationId: report.investigationId },
-      orderBy: [{ severity: "asc" }, { createdAt: "desc" }],
-    });
-
-    const mappedFindings: Finding[] = findings.map((f) => ({
-      id: f.id,
-      investigationId: f.investigationId,
-      title: f.title,
-      description: f.description,
-      severity: f.severity as Finding["severity"],
-      category: f.category as Finding["category"],
-      confidence: f.confidence,
-      source: f.source as Finding["source"],
-      evidenceRefs: (f.evidenceRefs as unknown as Finding["evidenceRefs"]) ?? [],
-      metadata: (f.metadata as Record<string, unknown>) ?? undefined,
-      isLowConfidence: f.isLowConfidence,
-      fingerprint: f.fingerprint ?? undefined,
-      createdAt: f.createdAt.toISOString(),
-    }));
+    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
 
     const reportData: ReportData = {
-      id: report.id,
-      investigationId: report.investigationId,
+      id: report.reportId,
+      investigationId: inv._id.toString(),
       summary: report.summary,
       overallScore: report.overallScore,
       findingCount: report.findingCount,
@@ -82,12 +53,12 @@ export async function GET(
       mediumCount: report.mediumCount,
       lowCount: report.lowCount,
       infoCount: report.infoCount,
-      findings: mappedFindings,
+      findings: (report.findings ?? []) as unknown as ReportData["findings"],
       metadata: {
-        url: investigation.url,
-        depth: investigation.depth as "quick" | "standard",
+        url: inv.url,
+        depth: inv.depth as "quick" | "standard",
         duration: 0,
-        completedAt: investigation.completedAt?.toISOString() ?? "",
+        completedAt: inv.completedAt?.toISOString?.() ?? inv.completedAt ?? "",
       },
     };
 

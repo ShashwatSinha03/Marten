@@ -1,6 +1,9 @@
+import { Types } from "mongoose";
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
+import { evidenceRepo } from "@/lib/repositories/evidence.repository";
+import { eventRepo } from "@/lib/repositories/event.repository";
 import type { ApiResponse } from "@/types";
 
 /**
@@ -23,18 +26,7 @@ export async function GET(
 
     const { id } = await params;
 
-    const investigation = await prisma.investigation.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: {
-            evidence: true,
-            findings: true,
-            events: true,
-          },
-        },
-      },
-    });
+    const investigation = await investigationRepo.findById(id);
 
     if (!investigation) {
       return NextResponse.json(
@@ -43,30 +35,44 @@ export async function GET(
       );
     }
 
+    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
+
     // Ensure the user owns this investigation.
-    if (investigation.userId !== session.user.id) {
+    if (inv.userId?.toString() !== session.user.id) {
       return NextResponse.json(
         { error: { code: "FORBIDDEN", message: "Not authorized to view this investigation" } },
         { status: 403 },
       );
     }
 
+    // Count related records for the _count field.
+    const [evidenceItems, events] = await Promise.all([
+      evidenceRepo.findByInvestigationId(id),
+      eventRepo.findAfterSequence(id, 0),
+    ]);
+
+    const findingCount = (inv.report?.findings?.length) ?? 0;
+
     const investigationData = {
-      id: investigation.id,
-      url: investigation.url,
-      normalizedUrl: investigation.normalizedUrl,
-      depth: investigation.depth,
-      status: investigation.status,
-      progress: investigation.progress,
-      error: investigation.error,
-      errorCode: investigation.errorCode,
-      userId: investigation.userId,
-      metadata: investigation.metadata,
-      startedAt: investigation.startedAt,
-      completedAt: investigation.completedAt,
-      createdAt: investigation.createdAt,
-      updatedAt: investigation.updatedAt,
-      _count: investigation._count,
+      id: inv._id.toString(),
+      url: inv.url,
+      normalizedUrl: inv.normalizedUrl,
+      depth: inv.depth,
+      status: inv.status,
+      progress: inv.progress,
+      error: inv.error,
+      errorCode: inv.errorCode,
+      userId: inv.userId?.toString(),
+      metadata: inv.metadata,
+      startedAt: inv.startedAt,
+      completedAt: inv.completedAt,
+      createdAt: inv.createdAt,
+      updatedAt: inv.updatedAt,
+      _count: {
+        evidence: evidenceItems.length,
+        findings: findingCount,
+        events: events.length,
+      },
     };
 
     const response: ApiResponse<typeof investigationData> = {

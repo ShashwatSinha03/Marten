@@ -1,4 +1,6 @@
-import prisma from "@/lib/prisma";
+import { Types } from "mongoose";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
+import { evidenceRepo } from "@/lib/repositories/evidence.repository";
 import { emitter } from "@/lib/sse/emitter";
 import { SseEventType } from "@/lib/sse/types";
 import { EvidenceCollector } from "./evidence-collector";
@@ -49,15 +51,13 @@ export class InvestigationOrchestrator {
   ): Promise<{ investigationId: string }> {
     const normalizedUrl = normalizeUrl(url);
 
-    const investigation = await prisma.investigation.create({
-      data: {
-        url,
-        normalizedUrl,
-        depth,
-        status: "pending",
-        progress: 0,
-        userId,
-      },
+    const investigation = await investigationRepo.create({
+      url,
+      normalizedUrl,
+      depth,
+      status: "pending",
+      progress: 0,
+      userId,
     });
 
     // Enqueue the pipeline as a background job.
@@ -68,21 +68,19 @@ export class InvestigationOrchestrator {
       });
 
     logger.info("Investigation started", {
-      id: investigation.id,
+      id: investigation._id.toString(),
       url: normalizedUrl,
       depth,
     });
 
-    return { investigationId: investigation.id };
+    return { investigationId: investigation._id.toString() };
   }
 
   /**
    * Resume a stale / crashed investigation from its last persisted state.
    */
   async resume(investigationId: string): Promise<void> {
-    const investigation = await prisma.investigation.findUnique({
-      where: { id: investigationId },
-    });
+    const investigation = await investigationRepo.findById(investigationId);
 
     if (!investigation) {
       throw new Error(`Investigation not found: ${investigationId}`);
@@ -216,14 +214,11 @@ export class InvestigationOrchestrator {
       }
     }
 
-    // Mark complete.
+    // Mark complete with SSE events.
     await this.#transition(ctx.investigationId, "complete", 1.0, {
       completedAt: new Date().toISOString(),
     });
-    await prisma.investigation.update({
-      where: { id: investigationId },
-      data: { completedAt: new Date() },
-    });
+    await investigationRepo.markComplete(investigationId);
 
     emitter.emit(investigationId, {
       type: SseEventType.Complete,
@@ -279,13 +274,10 @@ export class InvestigationOrchestrator {
         failedStep: state,
       });
 
-      await prisma.investigation.update({
-        where: { id: ctx.investigationId },
-        data: {
-          status: targetStatus,
-          error: errorMessage,
-          errorCode: isRecoverable ? "PARTIAL_COMPLETE" : "UNRECOVERABLE",
-        },
+      await investigationRepo.updateStatus(ctx.investigationId, {
+        status: targetStatus,
+        error: errorMessage,
+        errorCode: isRecoverable ? "PARTIAL_COMPLETE" : "UNRECOVERABLE",
       });
 
       ctx.errors.push({
@@ -307,10 +299,7 @@ export class InvestigationOrchestrator {
     extra?: Record<string, unknown>,
   ): Promise<void> {
     // Persist to DB.
-    await prisma.investigation.update({
-      where: { id: investigationId },
-      data: { status, progress },
-    });
+    await investigationRepo.updateStatus(investigationId, { status, progress });
 
     // Emit SSE event.
     emitter.emit(investigationId, {
@@ -331,27 +320,21 @@ export class InvestigationOrchestrator {
   }
 
   async #loadContext(investigationId: string): Promise<PipelineContext> {
-    const investigation = await prisma.investigation.findUnique({
-      where: { id: investigationId },
-      include: {
-        evidence: true,
-        productGraph: true,
-        findings: true,
-        report: true,
-      },
-    });
+    const investigation = await investigationRepo.findById(investigationId);
 
     if (!investigation) {
       throw new Error(`Investigation not found: ${investigationId}`);
     }
 
+    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
+
     return {
-      investigationId: investigation.id,
-      url: investigation.normalizedUrl,
-      depth: investigation.depth as "quick" | "standard",
-      status: investigation.status as PipelineContext["status"],
-      progress: investigation.progress,
-      startedAt: investigation.startedAt ?? new Date(),
+      investigationId: inv._id.toString(),
+      url: inv.normalizedUrl,
+      depth: inv.depth as "quick" | "standard",
+      status: inv.status as PipelineContext["status"],
+      progress: inv.progress,
+      startedAt: inv.startedAt ?? new Date(),
       errors: [],
     };
   }

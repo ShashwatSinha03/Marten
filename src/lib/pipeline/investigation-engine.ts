@@ -11,8 +11,6 @@ import { visualDetector } from "@/lib/detectors/visual-detector";
 import { emitter } from "@/lib/sse/emitter";
 import { SseEventType } from "@/lib/sse/types";
 import { logger } from "@/lib/logger";
-import prisma from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
 import type { HeuristicDetector } from "@/lib/detectors/types";
 
 const DETECTORS: HeuristicDetector[] = [
@@ -94,36 +92,20 @@ export class InvestigationEngine {
       finding.fingerprint = this.#generateFingerprint(finding);
     }
 
-    // Persist to DB.
-    const persisted: Finding[] = [];
-    for (const finding of unique) {
-      const record = await prisma.finding.create({
-        data: {
-          investigationId,
-          title: finding.title,
-          description: finding.description,
-          severity: finding.severity,
-          category: finding.category,
-          confidence: finding.confidence,
-          source: finding.source,
-          evidenceRefs: finding.evidenceRefs as unknown as Prisma.InputJsonValue,
-          metadata: (finding.metadata ?? {}) as Prisma.InputJsonValue,
-          isLowConfidence: finding.isLowConfidence,
-          fingerprint: finding.fingerprint,
-        },
-      });
+    // Findings are accumulated in memory and persisted when the report is saved.
+    const now = new Date().toISOString();
+    const persisted: Finding[] = unique.map((finding) => ({
+      ...finding,
+      id: crypto.randomUUID(),
+      createdAt: now,
+    }));
 
-      persisted.push({
-        ...finding,
-        id: record.id,
-        createdAt: record.createdAt.toISOString(),
-      });
-
-      // Emit finding_discovered event.
+    // Emit finding_discovered events for each finding.
+    for (const finding of persisted) {
       emitter.emit(investigationId, {
         type: SseEventType.FindingDiscovered,
         data: {
-          id: record.id,
+          id: finding.id,
           title: finding.title,
           severity: finding.severity,
           category: finding.category,

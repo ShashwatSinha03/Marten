@@ -1,8 +1,9 @@
 import type { Finding, ReportData, FindingSeverity } from "@/types";
+import type { IFinding, IReport } from "@/lib/mongoose";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import { emitter } from "@/lib/sse/emitter";
 import { SseEventType } from "@/lib/sse/types";
 import { logger } from "@/lib/logger";
-import prisma from "@/lib/prisma";
 
 const SEVERITY_WEIGHTS: Record<FindingSeverity, number> = {
   critical: 10,
@@ -40,7 +41,54 @@ export class ReportGenerator {
     const summary = this.#generateSummary(findings, bySeverity);
 
     // Build report data.
-    const reportData: Omit<ReportData, "id" | "metadata"> = {
+    const reportId = crypto.randomUUID();
+    const now = new Date();
+
+    // Convert app Finding[] to Mongoose IFinding[]
+    const mappedFindings: IFinding[] = findings.map((f) => ({
+      findingId: f.id,
+      title: f.title,
+      description: f.description,
+      severity: f.severity,
+      category: f.category,
+      confidence: f.confidence,
+      source: f.source,
+      evidenceRefs: f.evidenceRefs,
+      metadata: f.metadata ?? {},
+      isLowConfidence: f.isLowConfidence,
+      fingerprint: f.fingerprint,
+      recommendation: f.recommendation,
+      createdAt: f.createdAt ? new Date(f.createdAt) : now,
+    }));
+
+    const reportForDb: IReport = {
+      reportId,
+      summary,
+      overallScore,
+      findingCount: findings.length,
+      criticalCount: bySeverity.critical?.length ?? 0,
+      highCount: bySeverity.high?.length ?? 0,
+      mediumCount: bySeverity.medium?.length ?? 0,
+      lowCount: bySeverity.low?.length ?? 0,
+      infoCount: bySeverity.info?.length ?? 0,
+      metadata: {
+        url: "",
+        depth: "quick",
+        duration: Date.now() - startTime,
+        completedAt: new Date().toISOString(),
+      },
+      findings: mappedFindings,
+      shareLinks: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // Persist to DB (report + findings are embedded in the investigation document).
+    await investigationRepo.saveReport(investigationId, reportForDb);
+
+    // Build the ReportData for the pipeline context.
+    const reportData: ReportData = {
+      id: reportId,
       investigationId,
       summary,
       overallScore,
@@ -51,26 +99,6 @@ export class ReportGenerator {
       lowCount: bySeverity.low?.length ?? 0,
       infoCount: bySeverity.info?.length ?? 0,
       findings,
-    };
-
-    // Persist to DB.
-    const report = await prisma.report.create({
-      data: {
-        investigationId,
-        summary,
-        overallScore,
-        findingCount: findings.length,
-        criticalCount: reportData.criticalCount,
-        highCount: reportData.highCount,
-        mediumCount: reportData.mediumCount,
-        lowCount: reportData.lowCount,
-        infoCount: reportData.infoCount,
-      },
-    });
-
-    const fullReport: ReportData = {
-      ...reportData,
-      id: report.id,
       metadata: {
         url: "",
         depth: "quick",
@@ -83,7 +111,7 @@ export class ReportGenerator {
     emitter.emit(investigationId, {
       type: SseEventType.Complete,
       data: {
-        reportId: report.id,
+        reportId,
         overallScore,
         findingCount: findings.length,
       },
@@ -91,12 +119,12 @@ export class ReportGenerator {
 
     logger.info("Report generated", {
       investigationId,
-      reportId: report.id,
+      reportId,
       overallScore,
       findings: findings.length,
     });
 
-    return fullReport;
+    return reportData;
   }
 
   // ── Helpers ─────────────────────────────────────────────────────

@@ -1,7 +1,6 @@
 import { EventEmitter } from "node:events";
 
-import prisma from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+import { eventRepo } from "@/lib/repositories/event.repository";
 import { logger } from "@/lib/logger";
 import { SseEventType, type SseEvent, type SseEventPayload } from "./types";
 
@@ -103,13 +102,11 @@ class SseEmitter {
 
   async #persist(payload: SseEventPayload): Promise<void> {
     try {
-      await prisma.investigationEvent.create({
-        data: {
-          investigationId: payload.investigationId,
-          sequence: payload.sequence,
-          eventType: payload.eventType,
-          data: payload.data as Prisma.InputJsonValue,
-        },
+      await eventRepo.create({
+        investigationId: payload.investigationId,
+        sequence: payload.sequence,
+        eventType: payload.eventType,
+        data: payload.data,
       });
     } catch (err) {
       // Log but never throw — persistence is best-effort.

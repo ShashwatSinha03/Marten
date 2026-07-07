@@ -1,6 +1,6 @@
 import { type SseEvent } from "@/lib/sse/types";
+import { eventRepo } from "@/lib/repositories/event.repository";
 import { emitter } from "@/lib/sse/emitter";
-import prisma from "@/lib/prisma";
 import config from "@/lib/config";
 
 /**
@@ -32,19 +32,13 @@ export function createSseStream(
       try {
         // ── Replay past events ──────────────────────────────────
         if (lastSequence > 0) {
-          const pastEvents = await prisma.investigationEvent.findMany({
-            where: {
-              investigationId,
-              sequence: { gt: lastSequence },
-            },
-            orderBy: { sequence: "asc" },
-          });
+          const pastEvents = await eventRepo.findAfterSequence(investigationId, lastSequence);
 
           for (const event of pastEvents) {
             enqueueSseEvent(controller, {
               type: event.eventType as SseEvent["type"],
               id: event.sequence,
-              data: event.data as Record<string, unknown>,
+              data: (event.data ?? {}) as Record<string, unknown>,
             });
           }
         }

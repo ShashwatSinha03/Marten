@@ -1,14 +1,14 @@
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import { getServerSession as getServerSessionInner } from "next-auth";
 
-import prisma from "@/lib/prisma";
+import { getMongoClient } from "@/lib/mongoose/connection";
 import config from "@/lib/config";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: MongoDBAdapter(getMongoClient()),
   providers: [
     GitHubProvider({
       clientId: config.auth.github.clientId,

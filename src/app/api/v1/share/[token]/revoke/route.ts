@@ -1,6 +1,7 @@
+import { Types } from "mongoose";
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import type { ApiResponse } from "@/types";
 
 export async function POST(
@@ -18,36 +19,33 @@ export async function POST(
 
     const { token } = await params;
 
-    const shareLink = await prisma.shareLink.findUnique({
-      where: { token },
-    });
+    const investigation = await investigationRepo.findByShareToken(token);
 
-    if (!shareLink) {
+    if (!investigation || !investigation.report) {
       return NextResponse.json(
         { error: { code: "NOT_FOUND", message: "Share link not found" } },
         { status: 404 },
       );
     }
 
-    // Verify ownership via the report's investigation.
-    const report = await prisma.report.findUnique({
-      where: { id: shareLink.reportId },
-      include: {
-        investigation: { select: { userId: true } },
-      },
-    });
-
-    if (!report || report.investigation.userId !== session.user.id) {
+    // Verify ownership.
+    if (investigation.userId?.toString() !== session.user.id) {
       return NextResponse.json(
         { error: { code: "FORBIDDEN", message: "Not authorized to revoke this share link" } },
         { status: 403 },
       );
     }
 
-    await prisma.shareLink.update({
-      where: { id: shareLink.id },
-      data: { isActive: false },
-    });
+    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
+
+    // Find and revoke the share link in the embedded array.
+    const report = inv.report;
+    const shareLinks = (report.shareLinks ?? []).map(
+      (sl: { token: string; isActive?: boolean }) =>
+        sl.token === token ? { ...sl, isActive: false } : sl,
+    );
+    const updatedReport = { ...report, shareLinks, updatedAt: new Date() };
+    await investigationRepo.saveReport(inv._id.toString(), updatedReport);
 
     const response: ApiResponse<{ revoked: boolean }> = {
       data: { revoked: true },

@@ -1,6 +1,5 @@
+import { evidenceRepo } from "@/lib/repositories/evidence.repository";
 import { storage } from "./s3";
-import prisma from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
 import { logger } from "@/lib/logger";
 
 const EVIDENCE_KEY_PATTERN = "investigations/{investigationId}/{type}/{sequence}-{name}";
@@ -90,9 +89,7 @@ export class EvidenceStore {
    * Get a signed URL or public URL for an evidence record.
    */
   async getEvidenceUrl(evidenceRecordId: string): Promise<string> {
-    const record = await prisma.evidenceRecord.findUnique({
-      where: { id: evidenceRecordId },
-    });
+    const record = await evidenceRepo.findById(evidenceRecordId);
 
     if (!record) {
       throw new Error(`Evidence record not found: ${evidenceRecordId}`);
@@ -124,15 +121,13 @@ export class EvidenceStore {
     size: number,
     metadata?: Record<string, unknown>,
   ) {
-    const record = await prisma.evidenceRecord.create({
-      data: {
-        investigationId,
-        type,
-        storageKey,
-        mimeType,
-        size,
-        metadata: (metadata ?? {}) as Prisma.InputJsonValue,
-      },
+    const record = await evidenceRepo.create({
+      investigationId,
+      type,
+      storageKey,
+      mimeType,
+      size,
+      metadata: metadata ?? {},
     });
 
     logger.debug("Evidence record created", {

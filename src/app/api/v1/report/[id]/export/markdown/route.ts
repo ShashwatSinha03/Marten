@@ -1,6 +1,8 @@
+import { Types } from "mongoose";
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
+import type { Finding } from "@/types";
 
 export async function GET(
   _request: NextRequest,
@@ -17,41 +19,34 @@ export async function GET(
 
     const { id } = await params;
 
-    const report = await prisma.report.findUnique({
-      where: { id },
-      include: {
-        investigation: {
-          select: { id: true, url: true, depth: true, userId: true, completedAt: true },
-        },
-      },
-    });
+    const investigation = await investigationRepo.findByReportId(id);
 
-    if (!report) {
+    if (!investigation || !investigation.report) {
       return NextResponse.json(
         { error: { code: "NOT_FOUND", message: "Report not found" } },
         { status: 404 },
       );
     }
 
-    if (report.investigation.userId !== session.user.id) {
+    const inv = investigation as typeof investigation & { _id: Types.ObjectId };
+
+    if (inv.userId?.toString() !== session.user.id) {
       return NextResponse.json(
         { error: { code: "FORBIDDEN", message: "Not authorized" } },
         { status: 403 },
       );
     }
 
-    const findings = await prisma.finding.findMany({
-      where: { investigationId: report.investigationId },
-      orderBy: [{ severity: "asc" }, { createdAt: "desc" }],
-    });
+    const report = inv.report!;
+    const findings = (report.findings ?? []) as unknown as Finding[];
 
     const md = [
       `# Marten Investigation Report`,
       ``,
-      `**URL:** ${report.investigation.url}`,
-      `**Depth:** ${report.investigation.depth}`,
+      `**URL:** ${inv.url}`,
+      `**Depth:** ${inv.depth}`,
       `**Score:** ${report.overallScore ?? "N/A"}/100`,
-      `**Completed:** ${report.investigation.completedAt?.toISOString() ?? "N/A"}`,
+      `**Completed:** ${inv.completedAt?.toISOString?.() ?? inv.completedAt ?? "N/A"}`,
       ``,
       `## Summary`,
       ``,

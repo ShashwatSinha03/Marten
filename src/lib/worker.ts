@@ -25,7 +25,7 @@
  *   - Zero risk of duplicate processing
  */
 
-import prisma from "@/lib/prisma";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import { orchestrator } from "@/lib/pipeline/orchestrator";
 import { investigationQueue } from "@/lib/queue";
 import { logger } from "@/lib/logger";
@@ -105,60 +105,13 @@ async function poll(): Promise<void> {
 }
 
 /**
- * Claim pending and stale-running investigations.
+ * Claim pending and stale-running investigations using the repository.
  *
- * Uses optimistic locking: we fetch candidates, then try to update each one.
- * If another worker or the async queue already claimed it, the update fails
- * on the `where` clause and we skip it silently.
+ * Uses optimistic locking: the repository handles the atomic claim logic.
+ * If another worker or the async queue already claimed it, it's skipped silently.
  */
 async function claimWork(): Promise<string[]> {
-  const claimed: string[] = [];
-  const staleThreshold = new Date(Date.now() - STALE_RUNNING_TIMEOUT_MS);
-
-  // 1. Claim pending investigations (never started).
-  const pending = await prisma.investigation.findMany({
-    where: { status: "pending" },
-    orderBy: { createdAt: "asc" },
-    take: BATCH_SIZE,
-    select: { id: true },
-  });
-
-  for (const inv of pending) {
-    try {
-      await prisma.investigation.update({
-        where: { id: inv.id, status: "pending" },
-        data: { status: "running", heartbeatAt: new Date(), startedAt: new Date() },
-      });
-      claimed.push(inv.id);
-    } catch {
-      // Optimistic lock — another worker or the async queue claimed it first.
-    }
-  }
-
-  // 2. Reclaim stale running investigations (worker crashed).
-  const remainingSlots = BATCH_SIZE - claimed.length;
-  if (remainingSlots <= 0) return claimed;
-
-  const stale = await prisma.investigation.findMany({
-    where: { status: "running", heartbeatAt: { lt: staleThreshold } },
-    orderBy: { createdAt: "asc" },
-    take: remainingSlots,
-    select: { id: true },
-  });
-
-  for (const inv of stale) {
-    try {
-      await prisma.investigation.update({
-        where: { id: inv.id, status: "running", heartbeatAt: { lt: staleThreshold } },
-        data: { heartbeatAt: new Date() },
-      });
-      claimed.push(inv.id);
-    } catch {
-      // Another worker reclaimed it first, or heartbeat was refreshed.
-    }
-  }
-
-  return claimed;
+  return investigationRepo.claimBatch(BATCH_SIZE);
 }
 
 /**
@@ -167,20 +120,9 @@ async function claimWork(): Promise<string[]> {
  */
 async function sendHeartbeats(): Promise<void> {
   try {
-    // Only update records where heartbeat is stale (> 15s old) to
-    // avoid unnecessary writes.
-    const result = await prisma.investigation.updateMany({
-      where: {
-        status: "running",
-        heartbeatAt: {
-          lt: new Date(Date.now() - 15_000),
-        },
-      },
-      data: { heartbeatAt: new Date() },
-    });
-
-    if (result.count > 0) {
-      logger.debug("Heartbeats sent", { count: result.count });
+    const count = await investigationRepo.sendHeartbeats();
+    if (count > 0) {
+      logger.debug("Heartbeats sent", { count });
     }
   } catch (err) {
     logger.error({ err }, "Heartbeat update failed");

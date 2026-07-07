@@ -19,7 +19,7 @@ const config = {
   },
 
   database: {
-    url: process.env.DATABASE_URL || "",
+    url: process.env.MONGODB_URI || process.env.DATABASE_URL || "mongodb://localhost:27017/marten",
   },
 
   storage: {

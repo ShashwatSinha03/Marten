@@ -7,11 +7,11 @@ import type {
   EvidenceRef,
 } from "@/types";
 import type { EvidenceBundle } from "./types";
+import { llmUsageRepo } from "@/lib/repositories/llm-usage.repository";
 import { emitter } from "@/lib/sse/emitter";
 import { SseEventType } from "@/lib/sse/types";
 import { logger } from "@/lib/logger";
 import config from "@/lib/config";
-import prisma from "@/lib/prisma";
 
 /**
  * LlmEvaluation runs the LLM-based analysis pipeline for standard-depth
@@ -76,15 +76,14 @@ export class LlmEvaluation {
 
     // Track token usage.
     // Note: In production, capture usage from the API response.
-    await prisma.llmTokenUsage.create({
-      data: {
-        investigationId,
-        model: config.llm.model,
-        promptTokens: 0, // Requires response.usage
-        completionTokens: 0,
-        totalTokens: 0,
-        durationMs: Date.now() - startTime,
-      },
+    await llmUsageRepo.create({
+      investigationId,
+      model: config.llm.model,
+      promptTokens: 0, // Requires response.usage
+      completionTokens: 0,
+      totalTokens: 0,
+      costUsd: null,
+      durationMs: Date.now() - startTime,
     });
 
     const duration = Date.now() - startTime;

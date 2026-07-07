@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import { orchestrator } from "@/lib/pipeline/orchestrator";
 import type { ApiResponse } from "@/types";
 
@@ -24,10 +24,7 @@ export async function POST(
 
     const { id } = await params;
 
-    const investigation = await prisma.investigation.findUnique({
-      where: { id },
-      select: { id: true, userId: true, status: true },
-    });
+    const investigation = await investigationRepo.findById(id);
 
     if (!investigation) {
       return NextResponse.json(
@@ -36,7 +33,7 @@ export async function POST(
       );
     }
 
-    if (investigation.userId !== session.user.id) {
+    if (investigation.userId?.toString() !== session.user.id) {
       return NextResponse.json(
         { error: { code: "FORBIDDEN", message: "Not authorized" } },
         { status: 403 },

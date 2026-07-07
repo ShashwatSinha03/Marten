@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,43 +17,11 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.min(50, Math.max(1, parseInt(url.searchParams.get("pageSize") ?? "10", 10)));
     const status = url.searchParams.get("status") ?? undefined;
 
-    const where: Record<string, unknown> = {
-      userId: session.user.id,
-    };
-    if (status) {
-      where.status = status;
-    }
-
-    const [investigations, total] = await Promise.all([
-      prisma.investigation.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        include: {
-          _count: {
-            select: {
-              evidence: true,
-              findings: true,
-            },
-          },
-          report: {
-            select: {
-              id: true,
-              overallScore: true,
-              summary: true,
-            },
-          },
-        },
-      }),
-      prisma.investigation.count({ where }),
-    ]);
-
-    const hasMore = page * pageSize < total;
+    const result = await investigationRepo.findByUserId(session.user.id, { page, pageSize, status });
 
     return NextResponse.json({
-      data: investigations,
-      meta: { total, page, pageSize, hasMore },
+      data: result.data,
+      meta: { total: result.total, page: result.page, pageSize: result.pageSize, hasMore: result.hasMore },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to fetch investigations";

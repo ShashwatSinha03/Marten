@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import { createSseStream } from "@/lib/sse/stream";
 import { logger } from "@/lib/logger";
 
@@ -34,12 +34,9 @@ export async function GET(
   }
 
   // Verify investigation exists and user owns it.
-  const investigation = await prisma.investigation.findUnique({
-    where: { id },
-    select: { id: true, userId: true },
-  });
+  const investigation = await investigationRepo.findById(id);
 
-  if (!investigation) {
+  if (!investigation || !investigation.userId) {
     return new Response(
       JSON.stringify({ error: { code: "NOT_FOUND", message: "Investigation not found" } }),
       {
@@ -49,7 +46,7 @@ export async function GET(
     );
   }
 
-  if (investigation.userId !== session.user.id) {
+  if (investigation.userId?.toString() !== session.user.id) {
     return new Response(
       JSON.stringify({ error: { code: "FORBIDDEN", message: "Not authorized" } }),
       {

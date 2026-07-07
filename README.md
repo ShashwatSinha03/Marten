@@ -1,3 +1,7 @@
+# Marten
+
+Investigation platform for AI-generated UIs. Analyzes web interfaces through a 5-stage pipeline: Collect → Map → Understand → Investigate → Report.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

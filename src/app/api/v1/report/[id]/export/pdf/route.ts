@@ -1,6 +1,7 @@
+import { Types } from "mongoose";
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
 
 export async function GET(
   _request: NextRequest,
@@ -17,21 +18,16 @@ export async function GET(
 
     const { id } = await params;
 
-    const report = await prisma.report.findUnique({
-      where: { id },
-      include: {
-        investigation: { select: { userId: true } },
-      },
-    });
+    const investigation = await investigationRepo.findByReportId(id);
 
-    if (!report) {
+    if (!investigation || !investigation.report) {
       return NextResponse.json(
         { error: { code: "NOT_FOUND", message: "Report not found" } },
         { status: 404 },
       );
     }
 
-    if (report.investigation.userId !== session.user.id) {
+    if (investigation.userId?.toString() !== session.user.id) {
       return NextResponse.json(
         { error: { code: "FORBIDDEN", message: "Not authorized" } },
         { status: 403 },

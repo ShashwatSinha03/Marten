@@ -1,6 +1,6 @@
+import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import { emitter } from "@/lib/sse/emitter";
 import { SseEventType } from "@/lib/sse/types";
-import prisma from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import config from "@/lib/config";
 import type {
@@ -11,7 +11,6 @@ import type {
   GraphEdgeType,
 } from "@/types";
 import type { EvidenceBundle } from "./types";
-import type { Prisma } from "@prisma/client";
 
 /**
  * ProductGraphBuilder extracts a structured component graph from
@@ -136,15 +135,14 @@ export class ProductGraphBuilder {
       },
     });
 
-    await prisma.productGraph.create({
-      data: {
-        investigationId,
-        nodes: nodes as unknown as Prisma.InputJsonValue,
-        edges: edges as unknown as Prisma.InputJsonValue,
-        quality,
-        truncated,
-        metadata: graphData.metadata as Prisma.InputJsonValue,
-      },
+    await investigationRepo.saveGraph(investigationId, {
+      nodes,
+      edges,
+      quality,
+      truncated,
+      metadata: graphData.metadata,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     const duration = Date.now() - startTime;
