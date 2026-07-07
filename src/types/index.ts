@@ -43,7 +43,16 @@ export interface EvidenceItem {
 
 // ─── Product Graph ─────────────────────────────────────────────
 
-export type GraphNodeType = "screen" | "component" | "interaction" | "effect";
+export type GraphNodeType =
+  | "screen"
+  | "page" // NEW: A discovered page/route
+  | "component"
+  | "interaction"
+  | "effect"
+  | "application" // NEW: The application root node
+  | "navigation" // NEW: Nav element (navbar, sidebar, breadcrumb)
+  | "form" // NEW: Form element
+  | "section"; // NEW: Content section (hero, footer, card, table, etc.)
 
 export interface GraphNode {
   id: string;
@@ -58,6 +67,21 @@ export interface GraphNode {
     textContent?: string;
     tagName?: string;
     attributes?: Record<string, string>;
+
+    // NEW FIELDS:
+    route?: string;
+    nodeCategory?: string;
+    componentKind?: string;
+    detectedVia?: string[];
+    childCount?: number;
+    uniqueClasses?: string[];
+    url?: string;
+    visitCount?: number;
+    isEntryPoint?: boolean;
+    isExitPoint?: boolean;
+    flowId?: string;
+    flowName?: string;
+    layoutPosition?: { x: number; y: number; layer: number };
   };
   priority: number; // 1 (highest) - 5 (lowest)
 }
@@ -68,7 +92,12 @@ export type GraphEdgeType =
   | "fetches"
   | "shows"
   | "navigates_to"
-  | "logs";
+  | "logs"
+  | "links_to" // NEW: Link from one route/component to another
+  | "belongs_to" // NEW: Component belongs to a page
+  | "submits_to" // NEW: Form submits to an action/endpoint
+  | "references" // NEW: References another resource
+  | "composes"; // NEW: Composite relationship (page composes of sections)
 
 export interface GraphEdge {
   id: string;
@@ -79,6 +108,14 @@ export interface GraphEdge {
     event?: string;
     url?: string;
     selector?: string;
+
+    // NEW FIELDS:
+    method?: string;
+    label?: string;
+    order?: number;
+    frequency?: number;
+    linkText?: string;
+    durationMs?: number;
   };
 }
 
@@ -94,6 +131,12 @@ export interface ProductGraphData {
     edgeCount: number;
     builtAt: string;
     version: string;
+
+    // NEW FIELDS:
+    routeCount?: number;
+    componentCount?: number;
+    flowCount?: number;
+    detectionMethods?: string[];
   };
 }
 

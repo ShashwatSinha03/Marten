@@ -38,6 +38,7 @@ interface InvestigationState {
   error: string | null;
   startTime: number | null;
   duration: number;
+  currentMessage: string | null;
 }
 
 const initialState: InvestigationState = {
@@ -54,6 +55,7 @@ const initialState: InvestigationState = {
   error: null,
   startTime: null,
   duration: 0,
+  currentMessage: null,
 };
 
 // ─── Actions ─────────────────────────────────────────────────────
@@ -73,7 +75,8 @@ type Action =
   | { type: "SET_CONNECTION_STATUS"; payload: InvestigationState["connectionStatus"] }
   | { type: "SET_ERROR"; payload: string | null }
   | { type: "COMPLETE" }
-  | { type: "SET_DURATION"; payload: number };
+  | { type: "SET_DURATION"; payload: number }
+  | { type: "SET_MESSAGE"; payload: string | null };
 
 function reducer(state: InvestigationState, action: Action): InvestigationState {
   switch (action.type) {
@@ -117,6 +120,8 @@ function reducer(state: InvestigationState, action: Action): InvestigationState 
       };
     case "SET_DURATION":
       return { ...state, duration: action.payload };
+    case "SET_MESSAGE":
+      return { ...state, currentMessage: action.payload };
     default:
       return state;
   }
@@ -180,6 +185,9 @@ export function InvestigationProvider({
         es.addEventListener("progress_update", (e) => {
           const data = JSON.parse(e.data);
           dispatch({ type: "SET_PROGRESS", payload: data.progress });
+          if (data.message) {
+            dispatch({ type: "SET_MESSAGE", payload: data.message });
+          }
         });
 
         es.addEventListener("evidence_collected", (e) => {

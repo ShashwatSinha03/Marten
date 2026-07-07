@@ -2,8 +2,8 @@ import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import { evidenceRepo } from "@/lib/repositories/evidence.repository";
 import { emitter } from "@/lib/sse/emitter";
 import { SseEventType } from "@/lib/sse/types";
-import { EvidenceCollector } from "./evidence-collector";
-import { ProductGraphBuilder } from "./graph-builder";
+import { EnhancedEvidenceCollector } from "@/lib/evidence";
+import { UnderstandingEngine } from "@/lib/understanding";
 import { InvestigationEngine } from "./investigation-engine";
 import { LlmEvaluation } from "./llm-engine";
 import { ReportGenerator } from "./report-generator";
@@ -30,8 +30,8 @@ import { logger } from "@/lib/logger";
  * All state transitions are persisted to the DB and broadcast via SSE.
  */
 export class InvestigationOrchestrator {
-  private evidenceCollector = new EvidenceCollector();
-  private graphBuilder = new ProductGraphBuilder();
+  private evidenceCollector = new EnhancedEvidenceCollector();
+  private understandingEngine = new UnderstandingEngine();
   private investigationEngine = new InvestigationEngine();
   private llmEvaluation = new LlmEvaluation();
   private reportGenerator = new ReportGenerator();
@@ -155,8 +155,8 @@ export class InvestigationOrchestrator {
           }
 
           case "building_graph": {
-            if (!ctx.evidence) throw new Error("Evidence bundle missing");
-            const graph = await this.graphBuilder.build(
+            if (!ctx.evidence) throw new Error("Evidence collection result missing");
+            const graph = await this.understandingEngine.build(
               ctx.investigationId,
               ctx.evidence,
             );

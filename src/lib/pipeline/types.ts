@@ -6,6 +6,7 @@ import type {
   ReportData,
 } from "@/types";
 import type { SseEventType } from "@/lib/sse/types";
+import type { EvidenceCollectionResult } from "@/lib/evidence/types";
 
 /**
  * Context passed through every step of the investigation pipeline.
@@ -16,7 +17,7 @@ export interface PipelineContext {
   depth: "quick" | "standard";
   status: InvestigationStatus;
   progress: number;
-  evidence?: EvidenceBundle;
+  evidence?: EvidenceCollectionResult;
   graph?: ProductGraphData;
   findings?: Finding[];
   report?: ReportData;

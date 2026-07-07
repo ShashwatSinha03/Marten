@@ -17,7 +17,7 @@ import { FileText, Loader2 } from "lucide-react";
 
 export function InvestigationViewer({ className }: { className?: string }) {
   const { state } = useInvestigation();
-  const { phase, evidence, graph, findings, llmTokens, connectionStatus, error, duration, url } =
+  const { phase, evidence, graph, findings, llmTokens, connectionStatus, error, duration, url, currentMessage } =
     state;
 
   const renderPhaseContent = () => {
@@ -36,7 +36,7 @@ export function InvestigationViewer({ className }: { className?: string }) {
       case "collecting_evidence":
         return <CollectingEvidencePhase evidence={evidence} />;
       case "building_graph":
-        return <BuildingGraphPhase nodes={graph.nodes} edges={graph.edges} />;
+        return <BuildingGraphPhase nodes={graph.nodes} edges={graph.edges} currentMessage={currentMessage} />;
       case "investigating":
         return (
           <InvestigatingPhase findings={findings} llmTokens={llmTokens} />

@@ -8,19 +8,26 @@ import { Shuffle } from "lucide-react";
 interface BuildingGraphPhaseProps {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  currentMessage?: string | null;
   className?: string;
 }
 
 const nodeColors: Record<string, string> = {
-  screen: "#6366f1",
-  component: "#0ea5e9",
-  interaction: "#8b5cf6",
-  effect: "#10b981",
+  application: "#f59e0b",  // amber
+  screen:      "#6366f1",  // indigo
+  page:        "#818cf8",  // lighter indigo
+  component:   "#0ea5e9",  // sky
+  interaction: "#8b5cf6",  // violet
+  effect:      "#10b981",  // emerald
+  navigation:  "#f97316",  // orange
+  form:        "#ec4899",  // pink
+  section:     "#14b8a6",  // teal
 };
 
 export function BuildingGraphPhase({
   nodes,
   edges,
+  currentMessage,
   className,
 }: BuildingGraphPhaseProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -50,19 +57,77 @@ export function BuildingGraphPhase({
 
     if (nodes.length === 0) return;
 
-    // Layout nodes in a circle
-    const cx = w / 2;
-    const cy = h / 2;
-    const radius = Math.min(w, h) * 0.3;
+    // Compute positions using hierarchical layout when layoutPosition metadata exists,
+    // falling back to circular layout for backward compatibility
+    const hasLayoutPositions = nodes.some(
+      (n) => n.metadata?.layoutPosition?.layer !== undefined
+    );
 
-    const positions = nodes.map((node, i) => {
-      const angle = (i / nodes.length) * Math.PI * 2 - Math.PI / 2;
-      return {
-        x: cx + radius * Math.cos(angle),
-        y: cy + radius * Math.sin(angle),
-        node,
-      };
-    });
+    type NodePosition = { x: number; y: number; node: GraphNode };
+    let positions: NodePosition[];
+
+    if (hasLayoutPositions) {
+      // Group nodes by layer
+      const layers = new Map<number, GraphNode[]>();
+      const fallbackNodes: GraphNode[] = [];
+
+      nodes.forEach((node) => {
+        const layer = node.metadata?.layoutPosition?.layer;
+        if (layer !== undefined && layer !== null) {
+          const existing = layers.get(layer) ?? [];
+          existing.push(node);
+          layers.set(layer, existing);
+        } else {
+          fallbackNodes.push(node);
+        }
+      });
+
+      const sortedLayers = Array.from(layers.keys()).sort((a, b) => a - b);
+      const layerCount = sortedLayers.length;
+
+      positions = [];
+
+      sortedLayers.forEach((layer, layerIndex) => {
+        const layerNodes = layers.get(layer)!;
+        const layerY =
+          h * (0.12 + (layerIndex / Math.max(1, layerCount - 1)) * 0.76);
+
+        layerNodes.forEach((node, nodeIndex) => {
+          const x = ((nodeIndex + 0.5) / layerNodes.length) * w;
+          positions.push({ x, y: layerY, node });
+        });
+      });
+
+      // Nodes without layoutPosition fall back to circular
+      if (fallbackNodes.length > 0) {
+        const cx = w / 2;
+        const cy = h / 2;
+        const radius = Math.min(w, h) * 0.3;
+        fallbackNodes.forEach((node, i) => {
+          const angle =
+            (i / fallbackNodes.length) * Math.PI * 2 - Math.PI / 2;
+          positions.push({
+            x: cx + radius * Math.cos(angle),
+            y: cy + radius * Math.sin(angle),
+            node,
+          });
+        });
+      }
+    } else {
+      // Full fallback: circular layout
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = Math.min(w, h) * 0.3;
+
+      positions = nodes.map((node, i) => {
+        const angle = (i / nodes.length) * Math.PI * 2 - Math.PI / 2;
+        return {
+          x: cx + radius * Math.cos(angle),
+          y: cy + radius * Math.sin(angle),
+          node,
+        };
+      });
+    }
 
     // Draw edges
     edges.forEach((edge) => {
@@ -120,6 +185,13 @@ export function BuildingGraphPhase({
           {nodes.length} nodes · {edges.length} edges
         </span>
       </div>
+
+      {currentMessage && (
+        <div className="flex items-center gap-2 px-1 pb-2">
+          <span className="animate-pulse-soft text-accent">●</span>
+          <span className="text-xs text-text-tertiary">{currentMessage}</span>
+        </div>
+      )}
 
       <div className="flex-1 relative rounded-xl border border-border-subtle overflow-hidden bg-surface">
         <canvas

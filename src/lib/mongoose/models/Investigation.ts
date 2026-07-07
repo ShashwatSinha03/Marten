@@ -16,7 +16,16 @@ export type InvestigationStatus =
 
 export type InvestigationDepth = "quick" | "standard";
 
-export type GraphNodeType = "screen" | "component" | "interaction" | "effect";
+export type GraphNodeType =
+  | "screen"
+  | "component"
+  | "interaction"
+  | "effect"
+  | "application"
+  | "page"
+  | "navigation"
+  | "form"
+  | "section";
 
 export type GraphEdgeType =
   | "contains"
@@ -24,7 +33,12 @@ export type GraphEdgeType =
   | "fetches"
   | "shows"
   | "navigates_to"
-  | "logs";
+  | "logs"
+  | "links_to"
+  | "belongs_to"
+  | "submits_to"
+  | "references"
+  | "composes";
 
 export type EvidenceType =
   | "screenshot"
@@ -160,7 +174,17 @@ const graphNodeSchema = new Schema<IGraphNode>(
     type: {
       type: String,
       required: true,
-      enum: ["screen", "component", "interaction", "effect"],
+      enum: [
+        "screen",
+        "component",
+        "interaction",
+        "effect",
+        "application",
+        "page",
+        "navigation",
+        "form",
+        "section",
+      ],
     },
     label: { type: String, required: true },
     metadata: { type: Schema.Types.Mixed, default: {} },
@@ -184,6 +208,11 @@ const graphEdgeSchema = new Schema<IGraphEdge>(
         "shows",
         "navigates_to",
         "logs",
+        "links_to",
+        "belongs_to",
+        "submits_to",
+        "references",
+        "composes",
       ],
     },
     metadata: { type: Schema.Types.Mixed, default: {} },
