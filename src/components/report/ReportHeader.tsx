@@ -33,7 +33,7 @@ export function ReportHeader({
     <div className={cn("border-b border-border-subtle pb-6 mb-8", className)}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-semibold text-text-primary mb-2">
+          <h1 className="text-2xl font-semibold text-text-primary mb-2 font-display">
             Investigation Report
           </h1>
           <div className="flex items-center gap-2 text-sm text-text-secondary font-mono">

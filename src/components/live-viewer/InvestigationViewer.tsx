@@ -9,12 +9,15 @@ import { BuildingGraphPhase } from "./BuildingGraphPhase";
 import { InvestigatingPhase } from "./InvestigatingPhase";
 import { LiveFindingsPreview } from "./LiveFindingsPreview";
 import { ConnectionStatus } from "./ConnectionStatus";
+import { BrowserViewer } from "./BrowserViewer";
+import { InvestigationTimeline } from "./InvestigationTimeline";
+import { ReportPage } from "./ReportPage";
 import { ErrorState, LoadingDots } from "@/components/shared";
 import { FileText, Loader2 } from "lucide-react";
 
 export function InvestigationViewer({ className }: { className?: string }) {
   const { state } = useInvestigation();
-  const { phase, evidence, graph, findings, llmTokens, connectionStatus, error, duration } =
+  const { phase, evidence, graph, findings, llmTokens, connectionStatus, error, duration, url } =
     state;
 
   const renderPhaseContent = () => {
@@ -54,21 +57,7 @@ export function InvestigationViewer({ className }: { className?: string }) {
           </div>
         );
       case "complete":
-        return (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4">
-                <FileText className="h-6 w-6 text-success" />
-              </div>
-              <p className="text-sm font-medium text-text-primary">
-                Investigation Complete
-              </p>
-              <p className="text-xs text-text-tertiary mt-1">
-                {findings.length} findings · {evidence.length} evidence items
-              </p>
-            </div>
-          </div>
-        );
+        return null; // ReportPage is rendered separately
       case "failed":
         return (
           <ErrorState
@@ -110,12 +99,55 @@ export function InvestigationViewer({ className }: { className?: string }) {
 
       {/* Center: Main Content */}
       <div className="flex-1 min-w-0 flex flex-col bg-canvas">
-        <div className="flex-1 overflow-y-auto p-6">{renderPhaseContent()}</div>
+        {phase === "complete" ? (
+          /* Full report view */
+          <div className="flex-1 overflow-y-auto p-6">
+            <ReportPage
+              phase={phase}
+              url={url}
+              evidence={evidence}
+              findings={findings}
+              duration={duration}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Browser Viewer */}
+            <div className="p-4 pb-0">
+              <BrowserViewer
+                url={url}
+                evidence={evidence}
+                className="h-64"
+              />
+            </div>
+
+            {/* Phase-specific content below browser */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {renderPhaseContent()}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Right: Findings Preview */}
+      {/* Right: Timeline + Findings Preview */}
       <div className="w-80 shrink-0 border-l border-border-subtle bg-surface flex flex-col">
-        <LiveFindingsPreview findings={findings} />
+        {phase === "complete" ? (
+          <LiveFindingsPreview findings={findings} />
+        ) : (
+          <>
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <InvestigationTimeline
+                phase={phase}
+                evidence={evidence}
+                findings={findings}
+                className="flex-1"
+              />
+            </div>
+            <div className="border-t border-border-subtle flex-1 overflow-hidden flex flex-col">
+              <LiveFindingsPreview findings={findings} />
+            </div>
+          </>
+        )}
         <div className="px-4 py-2 border-t border-border-subtle">
           <ConnectionStatus status={connectionStatus} />
         </div>

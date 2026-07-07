@@ -8,24 +8,34 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  --color-canvas: #0a0a0b;
-  --color-surface: #111113;
-  --color-surface-elevated: #18181b;
-  --color-surface-overlay: #1e1e21;
-  --color-surface-floating: #252528;
+  /* ── Warm dark backgrounds (forest floor / deep burrow) ───── */
+  --color-canvas: #0c0907;
+  --color-surface: #120e0a;
+  --color-surface-elevated: #1a1410;
+  --color-surface-overlay: #221b16;
+  --color-surface-floating: #2a231d;
 
-  --color-border-subtle: #1f1f23;
-  --color-border-strong: #2d2d32;
-  --color-border-accent: #b45309;
+  /* ── Borders (brown tones from marten's coat) ────────────── */
+  --color-border-subtle: #2c231d;
+  --color-border-strong: #40342b;
+  --color-border-accent: #735445;
 
-  --color-text-primary: #f5f5f0;
-  --color-text-secondary: #a1a1a0;
-  --color-text-tertiary: #6b6b6a;
+  /* ── Text (cream belly of the marten) ────────────────────── */
+  --color-text-primary: #f5f2e8;
+  --color-text-secondary: #c4b5a5;
+  --color-text-tertiary: #8a7a6b;
 
-  --color-accent: #d97706;
-  --color-accent-hover: #f59e0b;
-  --color-accent-muted: #78350f;
+  /* ── Accent (marten's vibrant orange highlights) ──────────── */
+  --color-accent: #f58f00;
+  --color-accent-hover: #ffa726;
+  --color-accent-muted: #735445;
 
+  /* ── Marten colours (explicit tokens for theme elements) ─── */
+  --color-brown: #735445;
+  --color-cream: #FFFCD6;
+  --color-orange: #f58f00;
+
+  /* ── Severity (unchanged) ────────────────────────────────── */
   --color-critical: #dc2626;
   --color-high: #ea580c;
   --color-medium: #ca8a04;
@@ -33,19 +43,24 @@
   --color-success: #16a34a;
   --color-info: #4f46e5;
 
+  /* ── Graph nodes (unchanged) ─────────────────────────────── */
   --color-node-screen: #6366f1;
   --color-node-component: #0ea5e9;
   --color-node-interaction: #8b5cf6;
   --color-node-effect: #10b981;
 
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  /* ── Typography ──────────────────────────────────────────── */
+  --font-sans: "Titillium Web", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Mitr", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
+  /* ── Radii ───────────────────────────────────────────────── */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
 
+  /* ── Animations ──────────────────────────────────────────── */
   --animate-fade-in: fade-in 0.2s ease-out;
   --animate-slide-up: slide-up 0.3s ease-out;
   --animate-slide-right: slide-right 0.3s ease-out;
@@ -85,8 +100,8 @@
 }
 
 :root {
-  --background: #0a0a0b;
-  --foreground: #f5f5f0;
+  --background: #0c0907;
+  --foreground: #f5f2e8;
 }
 
 body {
@@ -95,7 +110,7 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling — warm brown tones */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -106,22 +121,22 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2d2d32;
+  background: #40342b;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3d3d42;
+  background: #5a4a3d;
 }
 
-/* Focus ring */
+/* Focus ring — marten orange */
 *:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
-/* Selection */
+/* Selection — warm brown highlight */
 ::selection {
-  background: rgba(217, 119, 6, 0.3);
-  color: #f5f5f0;
+  background: rgba(115, 84, 69, 0.4);
+  color: #f5f2e8;
 }

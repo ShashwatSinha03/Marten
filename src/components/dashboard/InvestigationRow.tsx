@@ -63,7 +63,7 @@ export function InvestigationRow({
         <div className="flex items-center gap-2">
           <Link
             href={`/investigate/${investigation.id}`}
-            className="text-sm font-medium text-text-primary hover:text-accent transition-colors truncate"
+            className="text-sm font-semibold text-text-primary hover:text-accent transition-colors truncate"
           >
             {truncate(investigation.url, 50)}
           </Link>

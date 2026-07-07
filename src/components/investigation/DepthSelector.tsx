@@ -59,7 +59,7 @@ export function DepthSelector({
           onClick={() => onChange(depth.key)}
           disabled={disabled}
           className={cn(
-            "relative flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+            "relative flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
             value === depth.key
               ? "bg-accent/10 text-accent shadow-sm"
@@ -76,7 +76,7 @@ export function DepthSelector({
           <span>{depth.label}</span>
           <span
             className={cn(
-              "text-[11px] px-1.5 py-0.5 rounded-full font-medium",
+              "text-[11px] px-1.5 py-0.5 rounded-full font-semibold",
               value === depth.key
                 ? "bg-accent/15 text-accent"
                 : "bg-surface-elevated text-text-tertiary"

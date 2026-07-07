@@ -38,7 +38,7 @@ export function FindingCard({ finding, className }: FindingCardProps) {
         <SeverityBadge severity={finding.severity} size="sm" className="mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-text-primary">
+            <span className="text-sm font-semibold text-text-primary">
               {finding.title}
             </span>
             {finding.isLowConfidence && (
@@ -91,7 +91,7 @@ export function FindingCard({ finding, className }: FindingCardProps) {
             <div className="flex gap-2 p-2.5 rounded-lg bg-accent/5 border border-accent/10">
               <Lightbulb className="h-4 w-4 text-accent shrink-0 mt-0.5" />
               <div>
-                <span className="text-[11px] font-semibold text-accent uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-accent uppercase tracking-wider">
                   Recommendation
                 </span>
                 <p className="text-xs text-text-secondary mt-0.5">

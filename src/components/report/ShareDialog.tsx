@@ -42,7 +42,7 @@ export function ShareDialog({
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
           <div className="flex items-center gap-2.5">
             <Link2 className="h-5 w-5 text-accent" />
-            <h2 className="text-sm font-semibold text-text-primary">
+            <h2 className="text-sm font-semibold text-text-primary font-display">
               Share Report
             </h2>
           </div>

@@ -119,7 +119,7 @@ export function EvidenceGallery({ evidence, className }: EvidenceGalleryProps) {
                     <td className="px-3 py-2 text-right">
                       <span
                         className={cn(
-                          "font-medium",
+                          "font-semibold",
                           (item.metadata?.status as number) >= 400
                             ? "text-critical"
                             : (item.metadata?.status as number) >= 300
@@ -159,7 +159,7 @@ export function EvidenceGallery({ evidence, className }: EvidenceGalleryProps) {
               >
                 <span
                   className={cn(
-                    "shrink-0 font-semibold",
+                    "shrink-0 font-bold",
                     (item.metadata?.level as string) === "error"
                       ? "text-critical"
                       : (item.metadata?.level as string) === "warn"
@@ -194,7 +194,7 @@ export function EvidenceGallery({ evidence, className }: EvidenceGalleryProps) {
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
               activeTab === tab.key
                 ? "bg-surface-elevated text-text-primary shadow-sm"
                 : "text-text-tertiary hover:text-text-secondary"

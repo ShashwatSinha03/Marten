@@ -174,7 +174,7 @@ export function InvestigationProvider({
 
         es.addEventListener("phase_change", (e) => {
           const data = JSON.parse(e.data);
-          dispatch({ type: "PHASE_CHANGE", payload: data.phase });
+          dispatch({ type: "PHASE_CHANGE", payload: data.status });
         });
 
         es.addEventListener("progress_update", (e) => {
@@ -184,27 +184,31 @@ export function InvestigationProvider({
 
         es.addEventListener("evidence_collected", (e) => {
           const data = JSON.parse(e.data);
-          dispatch({ type: "EVIDENCE_COLLECTED", payload: data.evidence });
+          dispatch({ type: "EVIDENCE_COLLECTED", payload: data as unknown as EvidenceItem });
         });
 
         es.addEventListener("graph_node_added", (e) => {
           const data = JSON.parse(e.data);
-          dispatch({ type: "GRAPH_NODE_ADDED", payload: data.node });
+          if (data.node) {
+            dispatch({ type: "GRAPH_NODE_ADDED", payload: data.node });
+          }
         });
 
         es.addEventListener("graph_edge_added", (e) => {
           const data = JSON.parse(e.data);
-          dispatch({ type: "GRAPH_EDGE_ADDED", payload: data.edge });
+          if (data.edge) {
+            dispatch({ type: "GRAPH_EDGE_ADDED", payload: data.edge });
+          }
         });
 
         es.addEventListener("finding_discovered", (e) => {
           const data = JSON.parse(e.data);
-          dispatch({ type: "FINDING_DISCOVERED", payload: data.finding });
+          dispatch({ type: "FINDING_DISCOVERED", payload: data as unknown as Finding });
         });
 
         es.addEventListener("llm_token", (e) => {
           const data = JSON.parse(e.data);
-          dispatch({ type: "LLM_TOKEN", payload: data.token });
+          dispatch({ type: "LLM_TOKEN", payload: data.token ?? "" });
         });
 
         es.addEventListener("complete", () => {

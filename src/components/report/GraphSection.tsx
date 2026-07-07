@@ -36,7 +36,7 @@ export function GraphSection({ nodes, edges, className }: GraphSectionProps) {
     ctx.scale(dpr, dpr);
 
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "#111113";
+    ctx.fillStyle = "#120e0a";
     ctx.fillRect(0, 0, w, h);
 
     // Layout
@@ -80,7 +80,7 @@ export function GraphSection({ nodes, edges, className }: GraphSectionProps) {
         tgt.y - arrowSize * Math.sin(angle + 0.3)
       );
       ctx.closePath();
-      ctx.fillStyle = "rgba(45, 45, 50, 0.6)";
+      ctx.fillStyle = "rgba(64, 52, 43, 0.6)";
       ctx.fill();
     });
 
@@ -108,7 +108,7 @@ export function GraphSection({ nodes, edges, className }: GraphSectionProps) {
       ctx.stroke();
 
       // Label
-      ctx.fillStyle = "#a1a1a0";
+      ctx.fillStyle = "#c4b5a5";
       ctx.font = "9px Inter, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(node.label, x, y + nodeRadius + 12);
@@ -126,7 +126,7 @@ export function GraphSection({ nodes, edges, className }: GraphSectionProps) {
   return (
     <div className={cn("", className)}>
       <div className="flex items-center gap-2 mb-3">
-        <h3 className="text-sm font-semibold text-text-primary">
+        <h3 className="text-sm font-semibold text-text-primary font-display">
           Product Graph
         </h3>
         <span className="text-xs text-text-tertiary font-mono">

@@ -22,7 +22,7 @@ export default function SignInPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Logo size="lg" className="justify-center mb-4" />
-          <h1 className="text-xl font-semibold text-text-primary mb-1">
+          <h1 className="text-xl font-semibold text-text-primary mb-1 font-display">
             Welcome back
           </h1>
           <p className="text-sm text-text-secondary">

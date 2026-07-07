@@ -44,8 +44,8 @@ export function BuildingGraphPhase({
     // Clear
     ctx.clearRect(0, 0, w, h);
 
-    // Background
-    ctx.fillStyle = "#111113";
+    // Background — warm dark brown (marten fur)
+    ctx.fillStyle = "#120e0a";
     ctx.fillRect(0, 0, w, h);
 
     if (nodes.length === 0) return;
@@ -73,7 +73,7 @@ export function BuildingGraphPhase({
       ctx.beginPath();
       ctx.moveTo(source.x, source.y);
       ctx.lineTo(target.x, target.y);
-      ctx.strokeStyle = "rgba(45, 45, 50, 0.6)";
+      ctx.strokeStyle = "rgba(64, 52, 43, 0.6)";
       ctx.lineWidth = 1;
       ctx.stroke();
     });
@@ -102,7 +102,7 @@ export function BuildingGraphPhase({
       ctx.stroke();
 
       // Label
-      ctx.fillStyle = "#a1a1a0";
+      ctx.fillStyle = "#c4b5a5";
       ctx.font = "10px Inter, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(node.label, x, y + nodeRadius + 14);
@@ -113,7 +113,7 @@ export function BuildingGraphPhase({
     <div className={cn("flex flex-col h-full", className)}>
       <div className="flex items-center gap-2 px-1 pb-3">
         <Shuffle className="h-4 w-4 text-accent" />
-        <h2 className="text-sm font-semibold text-text-primary">
+        <h2 className="text-sm font-semibold text-text-primary font-display">
           Building Product Graph
         </h2>
         <span className="text-xs text-text-tertiary font-mono">

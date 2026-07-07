@@ -44,7 +44,7 @@ export function InvestigationHistory({
   return (
     <div className={cn("", className)}>
       <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-sm font-semibold text-text-primary">
+        <h2 className="text-sm font-semibold text-text-primary font-display">
           Investigation History
         </h2>
         <span className="text-xs text-text-tertiary font-mono">

@@ -28,7 +28,7 @@ export function InvestigatingPhase({
       {/* Left: Findings */}
       <div className="flex-1 min-w-0 space-y-2 overflow-y-auto pr-2">
         <div className="flex items-center gap-2 px-1 pb-2">
-          <h2 className="text-sm font-semibold text-text-primary">
+          <h2 className="text-sm font-semibold text-text-primary font-display">
             Findings
           </h2>
           <span className="text-xs text-text-tertiary font-mono">
@@ -58,7 +58,7 @@ export function InvestigatingPhase({
       <div className="w-80 shrink-0 flex flex-col">
         <div className="flex items-center gap-2 px-1 pb-2">
           <Brain className="h-4 w-4 text-accent" />
-          <h2 className="text-sm font-semibold text-text-primary">
+          <h2 className="text-sm font-semibold text-text-primary font-display">
             LLM Reasoning
           </h2>
         </div>

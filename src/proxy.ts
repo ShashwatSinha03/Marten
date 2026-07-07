@@ -36,6 +36,7 @@ function isPublicRoute(pathname: string): boolean {
     "/favicon.ico",
     "/api/auth",
     "/share",
+    "/api/v1/investigations",
   ];
   return publicPrefixes.some((p) => pathname.startsWith(p));
 }

@@ -25,7 +25,7 @@ export function Logo({ className, size = "default", showText = true }: LogoProps
         </div>
       </div>
       {showText && (
-        <span className={cn("font-semibold tracking-tight text-text-primary", s.text)}>
+        <span className={cn("font-semibold tracking-tight text-text-primary font-display", s.text)}>
           Marten
         </span>
       )}

@@ -8,3 +8,6 @@ export { InvestigatingPhase } from "./InvestigatingPhase";
 export { FindingCard } from "./FindingCard";
 export { LiveFindingsPreview } from "./LiveFindingsPreview";
 export { ConnectionStatus } from "./ConnectionStatus";
+export { BrowserViewer } from "./BrowserViewer";
+export { InvestigationTimeline } from "./InvestigationTimeline";
+export { ReportPage } from "./ReportPage";

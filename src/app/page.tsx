@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Logo, Button } from "@/components/shared";
 import { UrlInput } from "@/components/investigation/UrlInput";
 import { DepthSelector } from "@/components/investigation/DepthSelector";
-import { InvestigationProvider, useInvestigation } from "@/components/live-viewer";
+import { useInvestigation } from "@/components/live-viewer";
 import type { InvestigationDepth } from "@/types";
 import { Search, GitBranch, FileText, Shield, ArrowUpRight } from "lucide-react";
 
@@ -53,7 +53,7 @@ function LandingContent() {
             AI-generated UI Investigation Platform
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-text-primary mb-4 leading-tight">
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-text-primary mb-4 leading-tight font-display">
             Investigate
             <br />
             <span className="text-accent">AI-generated UIs</span>
@@ -99,7 +99,7 @@ function LandingContent() {
               <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center mb-3">
                 {feature.icon}
               </div>
-              <h3 className="text-sm font-semibold text-text-primary mb-1">
+              <h3 className="text-sm font-semibold text-text-primary mb-1 font-display">
                 {feature.title}
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
@@ -124,11 +124,7 @@ function LandingContent() {
 }
 
 export default function LandingPage() {
-  return (
-    <InvestigationProvider>
-      <LandingContent />
-    </InvestigationProvider>
-  );
+  return <LandingContent />;
 }
 
 const features = [

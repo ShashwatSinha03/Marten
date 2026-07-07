@@ -51,7 +51,7 @@ export default function SharedReportPage() {
       <ReportSummary summary={report.summary} severityCounts={severityCounts} />
 
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-text-primary mb-4">
+        <h2 className="text-lg font-semibold text-text-primary mb-4 font-display">
           Findings
         </h2>
         <FindingsList findings={report.findings} />

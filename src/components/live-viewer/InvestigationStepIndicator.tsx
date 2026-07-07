@@ -88,7 +88,7 @@ export function InvestigationStepIndicator({
         {currentPhase === "complete" && (
           <div className="mt-3 pt-3 border-t border-border-subtle">
             <div className="flex items-center gap-2 text-xs text-text-tertiary">
-              <span className="font-medium">Completed</span>
+              <span className="font-semibold">Completed</span>
               {duration && (
                 <span className="font-mono">{formatDuration(duration)}</span>
               )}

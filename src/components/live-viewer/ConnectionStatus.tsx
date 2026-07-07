@@ -37,7 +37,7 @@ export function ConnectionStatus({
   return (
     <div
       className={cn(
-        "flex items-center gap-1.5 text-[11px] font-medium",
+        "flex items-center gap-1.5 text-[11px] font-semibold",
         config.color,
         className
       )}

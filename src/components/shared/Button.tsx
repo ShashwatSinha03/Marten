@@ -46,7 +46,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center font-medium transition-all duration-150",
+        "inline-flex items-center justify-center font-semibold transition-all duration-150",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         "disabled:opacity-40 disabled:pointer-events-none",
         "select-none",

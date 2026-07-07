@@ -74,7 +74,7 @@ export function FindingsList({ findings, className }: FindingsListProps) {
               setSeverityFilter(severityFilter === sev ? null : sev)
             }
             className={cn(
-              "px-2.5 py-1 rounded-full text-xs font-medium border transition-colors",
+              "px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors",
               severityFilter === sev
                 ? "bg-accent/10 border-accent/30 text-accent"
                 : "border-border-subtle text-text-secondary hover:border-border-strong"
@@ -91,7 +91,7 @@ export function FindingsList({ findings, className }: FindingsListProps) {
               setCategoryFilter(categoryFilter === cat ? null : cat)
             }
             className={cn(
-              "px-2.5 py-1 rounded-full text-xs font-medium border transition-colors",
+              "px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors",
               categoryFilter === cat
                 ? "bg-accent/10 border-accent/30 text-accent"
                 : "border-border-subtle text-text-secondary hover:border-border-strong"

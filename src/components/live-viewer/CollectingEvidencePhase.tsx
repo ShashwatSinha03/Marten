@@ -44,7 +44,7 @@ export function CollectingEvidencePhase({
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center gap-2 px-1">
-        <h2 className="text-sm font-semibold text-text-primary">
+        <h2 className="text-sm font-semibold text-text-primary font-display">
           Collecting Evidence
         </h2>
         <span className="text-xs text-text-tertiary font-mono">
@@ -74,7 +74,7 @@ export function CollectingEvidencePhase({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-text-primary">
+                      <span className="text-sm font-semibold text-text-primary">
                         {config.label}
                       </span>
                       <span className="text-[11px] text-text-tertiary font-mono">

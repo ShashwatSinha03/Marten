@@ -53,7 +53,7 @@ export function ReportSummary({ summary, severityCounts, className }: ReportSumm
 
   return (
     <div className={cn("mb-10", className)}>
-      <h2 className="text-lg font-semibold text-text-primary mb-4">Executive Summary</h2>
+      <h2 className="text-lg font-semibold text-text-primary mb-4 font-display">Executive Summary</h2>
 
       <div className="grid grid-cols-5 gap-3 mb-6">
         {(Object.entries(severityConfig) as [FindingSeverity, typeof severityConfig[FindingSeverity]][]).map(

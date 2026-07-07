@@ -33,7 +33,7 @@ export function QuickActions({
     <Card className={cn("", className)}>
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-text-primary">
+          <h2 className="text-sm font-semibold text-text-primary font-display">
             Quick Actions
           </h2>
           <p className="text-xs text-text-secondary mt-0.5">
@@ -56,7 +56,7 @@ export function QuickActions({
           <button
             key={sample.label}
             onClick={() => onSampleUrl(sample.url)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary bg-surface-elevated hover:bg-surface-overlay border border-border-subtle transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-text-primary bg-surface-elevated hover:bg-surface-overlay border border-border-subtle transition-colors"
           >
             {sample.icon}
             {sample.label}

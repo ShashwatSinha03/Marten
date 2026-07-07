@@ -69,7 +69,7 @@ export function PhaseStep({
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              "text-sm font-medium",
+              "text-sm font-semibold",
               state === "active" && "text-accent"
             )}
           >

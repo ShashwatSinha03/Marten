@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Titillium_Web, Mitr, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { InvestigationProvider } from "@/components/live-viewer";
 
-const inter = Inter({
+const titilliumWeb = Titillium_Web({
   variable: "--font-sans",
+  weight: ["400", "600", "700"],
   subsets: ["latin"],
+  display: "swap",
+});
+
+const mitr = Mitr({
+  variable: "--font-display",
+  weight: ["400", "500", "600", "700"],
+  subsets: ["thai", "vietnamese", "latin-ext"],
   display: "swap",
 });
 
@@ -37,11 +46,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased dark`}
+      className={`${titilliumWeb.variable} ${mitr.variable} ${jetbrainsMono.variable} h-full antialiased dark`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-canvas text-text-primary font-sans">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <InvestigationProvider>{children}</InvestigationProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

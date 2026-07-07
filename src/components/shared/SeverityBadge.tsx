@@ -26,7 +26,7 @@ export function SeverityBadge({ severity, size = "default", className }: Severit
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full font-medium border",
+        "inline-flex items-center rounded-full font-semibold border",
         config.classes,
         sizeStyles[size],
         className

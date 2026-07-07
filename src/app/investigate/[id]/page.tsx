@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useParams } from "next/navigation";
-import { InvestigationProvider, InvestigationViewer, useInvestigation } from "@/components/live-viewer";
+import { InvestigationViewer, useInvestigation } from "@/components/live-viewer";
 
 function InvestigationContent() {
   const params = useParams();
@@ -20,10 +20,8 @@ function InvestigationContent() {
 
 export default function InvestigationDetailPage() {
   return (
-    <InvestigationProvider>
-      <div className="flex h-screen w-full overflow-hidden">
-        <InvestigationContent />
-      </div>
-    </InvestigationProvider>
+    <div className="flex h-screen w-full overflow-hidden">
+      <InvestigationContent />
+    </div>
   );
 }

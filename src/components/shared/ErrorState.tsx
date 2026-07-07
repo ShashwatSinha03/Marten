@@ -36,7 +36,7 @@ export function ErrorState({
       )}
     >
       <div className="mb-4 text-critical/70">{errorIcons[type]}</div>
-      <h3 className="text-base font-semibold text-text-primary mb-1">
+      <h3 className="text-base font-semibold text-text-primary mb-1 font-display">
         {title}
       </h3>
       <p className="text-sm text-text-secondary max-w-sm mb-6">{message}</p>
