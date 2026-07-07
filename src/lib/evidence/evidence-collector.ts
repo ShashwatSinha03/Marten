@@ -1,4 +1,3 @@
-import { EvidenceCollector as BaseCollector } from "@/lib/pipeline/evidence-collector";
 import { browserPool } from "@/lib/browser/pool";
 import { evidenceStore } from "@/lib/storage/evidence-store";
 import config from "@/lib/config";
@@ -6,20 +5,19 @@ import { logger } from "@/lib/logger";
 import { extractStructuredDom } from "./dom-extractor";
 import { createNetworkSummary } from "./network-summarizer";
 import { NavigationTracker } from "./navigation-tracker";
-import { emitEvidenceCollected } from "./sse-helpers";
+import { emitEvidenceCollected, emitProgress } from "./sse-helpers";
 import type { EvidenceCollectionResult } from "./types";
 import type { EvidenceItem } from "@/types";
 
 /**
- * EnhancedEvidenceCollector wraps the base pipeline EvidenceCollector
- * and adds structured DOM extraction, network summarization, and
- * navigation tracking on top of the standard evidence bundle.
+ * EnhancedEvidenceCollector collects Playwright evidence (screenshots,
+ * DOM snapshots, console logs, network logs) and adds structured DOM
+ * extraction, network summarization, and navigation tracking.
  *
  * Quick (≤15 s): screenshots + raw DOM + console errors + structured DOM.
  * Standard (≤60 s): all of the above + network summary.
  */
 export class EnhancedEvidenceCollector {
-  private baseCollector = new BaseCollector();
 
   async collect(
     investigationId: string,
@@ -160,9 +158,11 @@ export class EnhancedEvidenceCollector {
       }
 
       // ── 5. Structured DOM extraction ──
+      emitProgress(investigationId, 0.5, "collecting_evidence", "Analyzing page structure...");
       const structuredDom = await extractStructuredDom(page, url);
 
       // ── 6. Network summary ──
+      emitProgress(investigationId, 0.6, "collecting_evidence", "Summarizing network activity...");
       const networkSummary = createNetworkSummary(allNetworkEntries);
 
       // ── 7. Navigation history ──

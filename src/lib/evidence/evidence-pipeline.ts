@@ -8,15 +8,14 @@ import { emitPhaseChange, emitProgress, emitComplete, emitError } from "./sse-he
 import type { EvidencePipelinePhase } from "./types";
 
 // Fixed placeholder user ID for the public no-auth endpoint.
-// The investigations endpoint is unauthenticated (proxy.ts marks it as publicRoute).
 const SYSTEM_USER_ID = "000000000000000000000000";
 
 /**
  * EvidencePipeline — lightweight orchestrator for URL → evidence collection.
  *
- * This replaces MockInvestigationEngine for the frontend's quick/standard
- * investigation flow. It only handles URL validation + evidence collection
- * (no graph building, AI analysis, or report generation).
+ * Gracefully handles MongoDB being unavailable: falls back to UUID-based
+ * investigation IDs with best-effort persistence. All SSE events remain
+ * fully functional regardless of DB state.
  *
  * State flow:
  *   pending → url_validating → collecting_evidence → complete
@@ -28,24 +27,32 @@ export class EvidencePipeline {
   /**
    * Start an evidence collection investigation.
    *
-   * 1. Creates Investigation record in DB (status: "pending").
-   * 2. Enqueues the collection pipeline as a background job.
-   * 3. Returns immediately — the caller tracks progress via SSE.
+   * Attempts to persist the investigation to MongoDB. If unavailable,
+   * generates a UUID-based ID and proceeds without persistence.
+   * SSE streaming and evidence collection still work in either case.
    */
   async start(
     url: string,
     depth: "quick" | "standard",
   ): Promise<{ investigationId: string }> {
-    const investigation = await investigationRepo.create({
-      url,
-      normalizedUrl: url,
-      depth,
-      status: "pending" as const,
-      progress: 0,
-      userId: SYSTEM_USER_ID,
-    });
+    let investigationId: string;
 
-    const investigationId = investigation._id.toString();
+    try {
+      const investigation = await investigationRepo.create({
+        url,
+        normalizedUrl: url,
+        depth,
+        status: "pending" as const,
+        progress: 0,
+        userId: SYSTEM_USER_ID,
+      });
+      investigationId = investigation._id.toString();
+    } catch {
+      // MongoDB unavailable — fall back to UUID-based ID.
+      // Persistence operations will be best-effort (caught by .catch(() => {})).
+      investigationId = crypto.randomUUID();
+      logger.warn("MongoDB unavailable — running without persistence", { investigationId, url });
+    }
 
     // Enqueue the pipeline as a background job.
     investigationQueue

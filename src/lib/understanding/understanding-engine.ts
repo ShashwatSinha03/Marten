@@ -17,7 +17,7 @@ import type { ProductGraphData } from "@/types";
  * by running route discovery, component mapping, navigation graph
  * construction, flow detection, and relation building in sequence.
  *
- * This replaces the old ProductGraphBuilder (src/lib/pipeline/graph-builder.ts).
+ * This replaces the old ProductGraphBuilder (removed).
  */
 export class UnderstandingEngine {
   private routeDiscoverer = new RouteDiscoverer();
