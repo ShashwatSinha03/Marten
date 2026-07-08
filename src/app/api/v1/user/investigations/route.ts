@@ -1,12 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import type { InvestigationStatus } from "@/lib/mongoose/models/Investigation";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json(
         { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
         { status: 401 },
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.min(50, Math.max(1, parseInt(url.searchParams.get("pageSize") ?? "10", 10)));
     const status = (url.searchParams.get("status") ?? undefined) as InvestigationStatus | undefined;
 
-    const result = await investigationRepo.findByUserId(session.user.id, { page, pageSize, status });
+    const result = await investigationRepo.findByUserId(userId, { page, pageSize, status });
 
     return NextResponse.json({
       data: result.data,

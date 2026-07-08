@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { orchestrator } from "@/lib/pipeline/orchestrator";
 import { normalizeUrl, validateUrl } from "@/lib/validators/url";
 import { logger } from "@/lib/logger";
@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
 
   try {
     // Auth check.
-    const session = await getServerSession();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json(
         { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
         { status: 401 },
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     const { investigationId } = await orchestrator.start(
       normalized,
       depth,
-      session.user.id,
+      userId,
     );
 
     const response: ApiResponse<StartInvestigationResponse> = {
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       investigationId,
       url: normalized,
       depth,
-      userId: session.user.id,
+      userId: userId,
       duration: Date.now() - startTime,
     });
 

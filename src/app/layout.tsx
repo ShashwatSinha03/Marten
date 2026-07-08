@@ -1,3 +1,4 @@
+import {ClerkProvider} from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Titillium_Web, Mitr, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
@@ -50,9 +51,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-canvas text-text-primary font-sans">
-        <ThemeProvider>
+        <ClerkProvider>
+          <ThemeProvider>
           <InvestigationProvider>{children}</InvestigationProvider>
-        </ThemeProvider>
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

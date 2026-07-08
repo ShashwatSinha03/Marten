@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { auth } from "@clerk/nextjs/server";
 
 const API_RATE_LIMIT = 10; // requests per minute per IP
 const RATE_WINDOW_MS = 60_000; // 1 minute
@@ -26,8 +26,8 @@ function isApiRoute(pathname: string): boolean {
   return pathname.startsWith("/api/");
 }
 
-function isAuthRoute(pathname: string): boolean {
-  return pathname.startsWith("/api/auth/");
+function isClerkRoute(pathname: string): boolean {
+  return pathname.startsWith("/__clerk/");
 }
 
 function isPublicRoute(pathname: string): boolean {
@@ -36,7 +36,10 @@ function isPublicRoute(pathname: string): boolean {
     "/favicon.ico",
     "/api/auth",
     "/share",
+    "/__clerk",
     "/api/v1/investigations",
+    "/sign-in",
+    "/sign-up",
   ];
   return publicPrefixes.some((p) => pathname.startsWith(p));
 }
@@ -72,8 +75,8 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  // ── Rate limiting (API routes only) ────────────────────────────
-  if (isApiRoute(pathname) && !isAuthRoute(pathname)) {
+  // ── Rate limiting (API routes only, exclude Clerk routes) ─────
+  if (isApiRoute(pathname) && !isClerkRoute(pathname)) {
     const now = Date.now();
     const entry = rateMap.get(ip);
 
@@ -108,11 +111,11 @@ export async function proxy(request: NextRequest) {
     headers.set("X-RateLimit-Reset", String(Math.ceil(currentEntry.resetAt / 1000)));
   }
 
-  // ── Auth check ─────────────────────────────────────────────────
-  if (isApiRoute(pathname) && !isAuthRoute(pathname) && !isPublicRoute(pathname)) {
-    const token = await getToken({ req: request });
+  // ── Auth check (API routes only, exclude Clerk + public routes) ──
+  if (isApiRoute(pathname) && !isClerkRoute(pathname) && !isPublicRoute(pathname)) {
+    const { userId } = await auth();
 
-    if (!token) {
+    if (!userId) {
       // Check if it's an HTML request (browser navigation) vs API.
       const accept = request.headers.get("accept") ?? "";
       if (accept.includes("text/html")) {

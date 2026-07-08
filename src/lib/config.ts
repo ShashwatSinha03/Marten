@@ -6,18 +6,6 @@ const config = {
     isProd: process.env.NODE_ENV === "production",
   },
 
-  auth: {
-    github: {
-      clientId: process.env.AUTH_GITHUB_ID || "",
-      clientSecret: process.env.AUTH_GITHUB_SECRET || "",
-    },
-    google: {
-      clientId: process.env.AUTH_GOOGLE_ID || "",
-      clientSecret: process.env.AUTH_GOOGLE_SECRET || "",
-    },
-    secret: process.env.AUTH_SECRET || "",
-  },
-
   database: {
     url: process.env.MONGODB_URI || process.env.DATABASE_URL || "mongodb://localhost:27017/marten",
   },

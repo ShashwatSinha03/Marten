@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import { createSseStream } from "@/lib/sse/stream";
 import { logger } from "@/lib/logger";
@@ -22,8 +22,8 @@ export async function GET(
   const { id } = await params;
 
   // Auth check.
-  const session = await getServerSession();
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return new Response(
       JSON.stringify({ error: { code: "UNAUTHORIZED", message: "Authentication required" } }),
       {
@@ -46,7 +46,7 @@ export async function GET(
     );
   }
 
-  if (investigation.userId?.toString() !== session.user.id) {
+  if (investigation.userId?.toString() !== userId) {
     return new Response(
       JSON.stringify({ error: { code: "FORBIDDEN", message: "Not authorized" } }),
       {

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { investigationRepo } from "@/lib/repositories/investigation.repository";
 import type { Finding } from "@/types";
 
@@ -8,8 +8,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json(
         { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
         { status: 401 },
@@ -29,7 +29,7 @@ export async function GET(
 
     const inv = investigation;
 
-    if (inv.userId?.toString() !== session.user.id) {
+    if (inv.userId?.toString() !== userId) {
       return NextResponse.json(
         { error: { code: "FORBIDDEN", message: "Not authorized" } },
         { status: 403 },

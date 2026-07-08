@@ -119,7 +119,7 @@ export function UrlInput({
           spellCheck={false}
           className={cn(
             "flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-tertiary",
-            "outline-none border-none focus:ring-0",
+            "outline-none border-none focus:ring-0 focus-visible:outline-none",
             "font-mono"
           )}
         />
