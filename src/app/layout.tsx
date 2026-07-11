@@ -37,6 +37,16 @@ export const metadata: Metadata = {
     "quality assurance",
     "product graph",
   ],
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+  },
+  openGraph: {
+    title: "Marten — Investigation Platform for AI-generated UIs",
+    description:
+      "Investigate AI-generated user interfaces with live evidence collection, product graph analysis, and comprehensive reports.",
+    images: ["/favicon.svg"],
+  },
 };
 
 export default function RootLayout({
