@@ -37,6 +37,12 @@ export const accessibilityDetector: HeuristicDetector = {
             isLowConfidence: false,
             recommendation: "Add descriptive alt text to all images. Use alt=\"\" for decorative images.",
             createdAt: new Date().toISOString(),
+            detectorId: "accessibility",
+            ruleId: "a11y/missing-alt",
+            evidenceIds: [dom.id],
+            graphNodeIds: [],
+            graphEdgeIds: [],
+            recommendationPlaceholder: "Add descriptive alt text to all images. Use alt=\"\" for decorative images.",
           });
         }
       }
@@ -64,6 +70,12 @@ export const accessibilityDetector: HeuristicDetector = {
             isLowConfidence: false,
             recommendation: "Add an aria-label attribute or associate a <label> element using the for attribute.",
             createdAt: new Date().toISOString(),
+            detectorId: "accessibility",
+            ruleId: "a11y/unlabeled-input",
+            evidenceIds: [dom.id],
+            graphNodeIds: [],
+            graphEdgeIds: [],
+            recommendationPlaceholder: "Add an aria-label attribute or associate a <label> element using the for attribute.",
           });
         }
       }
@@ -83,11 +95,17 @@ export const accessibilityDetector: HeuristicDetector = {
           category: "accessibility",
           confidence: 0.9,
           source: "heuristic",
-          evidenceRefs: [{ type: "dom_snapshot", id: dom.id }],
-          isLowConfidence: false,
-          recommendation: "Wrap the primary content in a <main> element to define a landmark for screen readers.",
-          createdAt: new Date().toISOString(),
-        });
+            evidenceRefs: [{ type: "dom_snapshot", id: dom.id }],
+            isLowConfidence: false,
+            recommendation: "Wrap the primary content in a <main> element to define a landmark for screen readers.",
+            createdAt: new Date().toISOString(),
+            detectorId: "accessibility",
+            ruleId: "a11y/missing-aria",
+            evidenceIds: [dom.id],
+            graphNodeIds: [],
+            graphEdgeIds: [],
+            recommendationPlaceholder: "Wrap the primary content in a <main> element to define a landmark for screen readers.",
+          });
       }
 
       if (!hasNav) {
@@ -104,6 +122,12 @@ export const accessibilityDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: "Wrap navigation links in a <nav> element to improve screen reader navigation.",
           createdAt: new Date().toISOString(),
+          detectorId: "accessibility",
+          ruleId: "a11y/missing-aria",
+          evidenceIds: [dom.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: "Wrap navigation links in a <nav> element to improve screen reader navigation.",
         });
       }
     }

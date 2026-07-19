@@ -156,7 +156,13 @@ export type FindingCategory =
   | "network"
   | "visual"
   | "behavioral"
-  | "functional";
+  | "functional"
+  | "navigation"
+  | "component"
+  | "cta"
+  | "form"
+  | "content"
+  | "flow";
 
 export type FindingSource = "heuristic" | "llm" | "both";
 
@@ -181,6 +187,12 @@ export interface Finding {
   fingerprint?: string;
   recommendation?: string;
   createdAt: string;
+  detectorId: string;
+  ruleId: string;
+  evidenceIds: string[];
+  graphNodeIds: string[];
+  graphEdgeIds: string[];
+  recommendationPlaceholder: string;
 }
 
 // ─── SSE Events ────────────────────────────────────────────────

@@ -167,11 +167,28 @@ export class InvestigationOrchestrator {
           case "investigating": {
             if (!ctx.evidence) throw new Error("Evidence bundle missing");
 
-            // Always run heuristic detectors.
+            // Extract enriched context data from evidence collection result
+            const structuredDom = ctx.evidence.structuredDom;
+            const networkSummary = ctx.evidence.networkSummary;
+            const navigationHistory = ctx.evidence.navigationHistory;
+
+            // Extract understanding internals if available
+            const internals = this.understandingEngine.lastResult;
+
+            // Always run heuristic detectors via the new investigation engine.
             const heuristicFindings = await this.investigationEngine.investigate(
               ctx.investigationId,
               ctx.evidence,
               ctx.graph,
+              structuredDom,
+              networkSummary,
+              navigationHistory,
+              internals?.routeGraph,
+              internals?.componentMap,
+              internals?.navigationGraph,
+              internals?.flows,
+              ctx.url,
+              ctx.depth,
             );
 
             let allFindings = heuristicFindings;

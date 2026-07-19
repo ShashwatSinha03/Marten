@@ -9,6 +9,13 @@ import { RelationBuilder } from "./relation-builder";
 import { emitGraphProgress, emitGraphBuildComplete } from "./sse-helpers";
 import type { EvidenceCollectionResult } from "@/lib/evidence/types";
 import type { ProductGraphData } from "@/types";
+import type {
+  RouteGraph,
+  ComponentMap,
+  NavigationGraphData,
+  FlowGraphData,
+  UnderstandingResult,
+} from "./types";
 
 /**
  * UnderstandingEngine is the main orchestrator for Sprint 2B.
@@ -27,6 +34,13 @@ export class UnderstandingEngine {
   private relationBuilder = new RelationBuilder();
 
   /**
+   * Exposes the last build's internal UnderstandingResult for use
+   * by downstream pipeline steps (e.g., investigation engine).
+   * Reset to null before each build, populated after a successful build.
+   */
+  lastResult: UnderstandingResult | null = null;
+
+  /**
    * Build a ProductGraph from collected evidence.
    */
   async build(
@@ -34,6 +48,7 @@ export class UnderstandingEngine {
     evidence: EvidenceCollectionResult,
   ): Promise<ProductGraphData> {
     const startTime = Date.now();
+    this.lastResult = null;
     const { url, depth, structuredDom, navigationHistory } = evidence;
 
     logger.info("Building product graph", { investigationId, url });
@@ -115,6 +130,14 @@ export class UnderstandingEngine {
     };
 
     // Emit build complete
+    // Store internals for downstream pipeline steps
+    this.lastResult = {
+      routeGraph,
+      componentMap,
+      navigationGraph,
+      flows,
+    };
+
     emitGraphBuildComplete(investigationId, nodes.length, edges.length);
 
     // Persist via existing repository

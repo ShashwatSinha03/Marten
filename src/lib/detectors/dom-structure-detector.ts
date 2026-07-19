@@ -40,6 +40,12 @@ export const domStructureDetector: HeuristicDetector = {
             isLowConfidence: false,
             recommendation: `Ensure ID "${id}" is unique across the document. Rename duplicates to be distinct.`,
             createdAt: new Date().toISOString(),
+            detectorId: "dom_structure",
+            ruleId: "a11y/duplicate-id",
+            evidenceIds: [dom.id],
+            graphNodeIds: [],
+            graphEdgeIds: [],
+            recommendationPlaceholder: `Ensure ID "${id}" is unique across the document. Rename duplicates to be distinct.`,
           });
         }
       }
@@ -60,6 +66,12 @@ export const domStructureDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: "Flatten the DOM structure. Consider using CSS properties like grid or flexbox instead of nested container divs.",
           createdAt: new Date().toISOString(),
+          detectorId: "dom_structure",
+          ruleId: "dom_structure/excessive-nesting",
+          evidenceIds: [dom.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: "Flatten the DOM structure. Consider using CSS properties like grid or flexbox instead of nested container divs.",
         });
       }
 
@@ -79,6 +91,12 @@ export const domStructureDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: "Reduce the number of DOM elements. Consider lazy loading off-screen content and virtualizing long lists.",
           createdAt: new Date().toISOString(),
+          detectorId: "dom_structure",
+          ruleId: "dom_structure/large-dom",
+          evidenceIds: [dom.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: "Reduce the number of DOM elements. Consider lazy loading off-screen content and virtualizing long lists.",
         });
       }
 
@@ -101,6 +119,12 @@ export const domStructureDetector: HeuristicDetector = {
             isLowConfidence: false,
             recommendation: "Use a <button> element for actions and real URLs for navigation. Avoid href=\"#\" or href=\"javascript:void(0)\".",
             createdAt: new Date().toISOString(),
+            detectorId: "dom_structure",
+            ruleId: "dom_structure/broken-link",
+            evidenceIds: [dom.id],
+            graphNodeIds: [],
+            graphEdgeIds: [],
+            recommendationPlaceholder: "Use a <button> element for actions and real URLs for navigation. Avoid href=\"#\" or href=\"javascript:void(0)\".",
           });
         }
       }

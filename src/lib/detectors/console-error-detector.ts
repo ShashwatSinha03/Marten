@@ -64,6 +64,12 @@ export const consoleErrorDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: getRecommendation(entry.level),
           createdAt: new Date().toISOString(),
+          detectorId: "console_error",
+          ruleId: "console/js-error",
+          evidenceIds: [log.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: getRecommendation(entry.level) ?? "",
         };
 
         findings.push(finding);

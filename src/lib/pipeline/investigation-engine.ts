@@ -1,103 +1,143 @@
 import type { Finding } from "@/types";
 import type { EvidenceBundle } from "./types";
 import type { ProductGraphData } from "@/types";
-import type { DetectorContext } from "@/lib/detectors/types";
+import type {
+  InvestigationContext,
+} from "@/lib/investigation/types";
+import type {
+  StructuredDom,
+  NetworkSummary,
+  NavigationHistory,
+} from "@/lib/evidence/types";
+import type {
+  RouteGraph,
+  ComponentMap,
+  NavigationGraphData,
+  FlowGraphData,
+} from "@/lib/understanding/types";
 
-import { consoleErrorDetector } from "@/lib/detectors/console-error-detector";
-import { accessibilityDetector } from "@/lib/detectors/accessibility-detector";
-import { domStructureDetector } from "@/lib/detectors/dom-structure-detector";
-import { networkDetector } from "@/lib/detectors/network-detector";
-import { visualDetector } from "@/lib/detectors/visual-detector";
+import { detectorRegistry } from "@/lib/investigation/detector-registry";
+import { emitInvestigationProgress } from "@/lib/investigation/sse-helpers";
 import { emitter } from "@/lib/sse/emitter";
 import { SseEventType } from "@/lib/sse/types";
 import { logger } from "@/lib/logger";
-import type { HeuristicDetector } from "@/lib/detectors/types";
-
-const DETECTORS: HeuristicDetector[] = [
-  consoleErrorDetector,
-  accessibilityDetector,
-  domStructureDetector,
-  networkDetector,
-  visualDetector,
-];
 
 /**
- * InvestigationEngine runs all heuristic detectors in parallel,
- * deduplicates findings by fingerprint, and persists them to the DB.
+ * InvestigationEngine runs all registered detectors via the DetectorRegistry,
+ * deduplicates findings by fingerprint, assigns IDs and timestamps,
+ * and emits SSE events.
+ *
+ * This replaces the old manual DETECTORS array approach with the new
+ * rule-based investigation system from Sprint 3A.
  */
 export class InvestigationEngine {
   /**
-   * Run heuristic analysis on the collected evidence.
+   * Run heuristic analysis on the collected evidence and graph.
    *
    * @param investigationId - The investigation to associate findings with.
    * @param evidence        - Captured evidence bundle.
    * @param graph           - Optional product graph for context.
+   * @param structuredDom   - Optional structured DOM data.
+   * @param networkSummary  - Optional network summary.
+   * @param navigationHistory - Optional navigation history.
+   * @param routeGraph      - Optional route graph from understanding engine.
+   * @param componentMap    - Optional component map from understanding engine.
+   * @param navigationGraph - Optional navigation graph from understanding engine.
+   * @param flows           - Optional flow data from understanding engine.
+   * @param url             - The URL being investigated.
+   * @param depth           - Investigation depth.
    * @returns Array of unique findings.
    */
   async investigate(
     investigationId: string,
     evidence: EvidenceBundle,
     graph?: ProductGraphData,
+    structuredDom?: StructuredDom,
+    networkSummary?: NetworkSummary,
+    navigationHistory?: NavigationHistory,
+    routeGraph?: RouteGraph,
+    componentMap?: ComponentMap,
+    navigationGraph?: NavigationGraphData,
+    flows?: FlowGraphData,
+    url?: string,
+    depth?: "quick" | "standard",
   ): Promise<Finding[]> {
     const startTime = Date.now();
-    const ctx: DetectorContext = { evidence, graph };
+    const detectors = detectorRegistry.getAll();
 
-    // Run all detectors in parallel.
-    const results = await Promise.allSettled(
-      DETECTORS.map(async (detector) => {
-        try {
-          const findings = await Promise.resolve(detector.detect(ctx));
+    logger.info("Investigation engine started", {
+      investigationId,
+      detectorCount: detectors.length,
+    });
 
-          // Associate each finding with the investigation.
-          for (const f of findings) {
-            f.investigationId = investigationId;
-          }
+    // Build enriched investigation context
+    const ctx: InvestigationContext = {
+      investigationId,
+      evidence,
+      graph,
+      structuredDom,
+      networkSummary,
+      navigationHistory,
+      routeGraph,
+      componentMap,
+      navigationGraph,
+      flows,
+      url: url ?? "unknown",
+      depth: depth ?? "standard",
+    };
 
-          // Emit heuristic_result event.
-          emitter.emit(investigationId, {
-            type: SseEventType.HeuristicResult,
-            data: {
-              detectorId: detector.id,
-              detectorName: detector.name,
-              findingCount: findings.length,
-            },
-          });
-
-          logger.debug("Detector completed", {
-            detector: detector.id,
-            findings: findings.length,
-          });
-
-          return findings;
-        } catch (err) {
-          logger.error({ err, detector: detector.id }, "Detector failed");
-          return [] as Finding[];
-        }
-      }),
+    // Emit progress before running detectors
+    emitInvestigationProgress(
+      investigationId,
+      `Running ${detectors.length} heuristic detectors...`,
+      0.6,
     );
 
-    // Collect all findings.
+    // Run all detectors via registry
+    const detectorResults = await detectorRegistry.executeAll(ctx);
+
+    // Collect all findings from detector results
     const allFindings: Finding[] = [];
-    for (const result of results) {
-      if (result.status === "fulfilled") {
-        allFindings.push(...result.value);
+    for (const result of detectorResults) {
+      for (const finding of result.findings) {
+        finding.investigationId = investigationId;
+        allFindings.push(finding);
       }
+
+      // Emit heuristic_result event for each detector
+      emitter.emit(investigationId, {
+        type: SseEventType.HeuristicResult,
+        data: {
+          detectorId: result.detectorId,
+          detectorName: result.title,
+          findingCount: result.findings.length,
+          durationMs: result.durationMs,
+        },
+      });
+
+      logger.debug("Detector completed", {
+        detector: result.detectorId,
+        findings: result.findings.length,
+        durationMs: result.durationMs,
+      });
     }
 
     // Deduplicate by fingerprint.
     const unique = this.#deduplicate(allFindings);
 
-    // Assign fingerprints to persisted findings.
+    // Assign fingerprints to any remaining findings.
     for (const finding of unique) {
-      finding.fingerprint = this.#generateFingerprint(finding);
+      if (!finding.fingerprint) {
+        finding.fingerprint = this.#generateFingerprint(finding);
+      }
     }
 
-    // Findings are accumulated in memory and persisted when the report is saved.
+    // Assign IDs and timestamps.
     const now = new Date().toISOString();
     const persisted: Finding[] = unique.map((finding) => ({
       ...finding,
-      id: crypto.randomUUID(),
-      createdAt: now,
+      id: finding.id || crypto.randomUUID(),
+      createdAt: finding.createdAt || now,
     }));
 
     // Emit finding_discovered events for each finding.
@@ -160,7 +200,9 @@ export class InvestigationEngine {
           existing.confidence = finding.confidence;
         }
         // Merge evidence refs.
-        const existingRefs = new Set(existing.evidenceRefs.map((r) => `${r.type}:${r.id}`));
+        const existingRefs = new Set(
+          existing.evidenceRefs.map((r) => `${r.type}:${r.id}`),
+        );
         for (const ref of finding.evidenceRefs) {
           const key = `${ref.type}:${ref.id}`;
           if (!existingRefs.has(key)) {

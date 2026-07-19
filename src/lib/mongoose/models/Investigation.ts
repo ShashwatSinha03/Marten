@@ -60,7 +60,13 @@ export type FindingCategory =
   | "network"
   | "visual"
   | "behavioral"
-  | "functional";
+  | "functional"
+  | "navigation"
+  | "component"
+  | "cta"
+  | "form"
+  | "content"
+  | "flow";
 
 export type FindingSource = "heuristic" | "llm" | "both";
 
@@ -261,6 +267,12 @@ const findingSchema = new Schema<IFinding>(
         "visual",
         "behavioral",
         "functional",
+        "navigation",
+        "component",
+        "cta",
+        "form",
+        "content",
+        "flow",
       ],
     },
     confidence: { type: Number, required: true, min: 0, max: 1 },

@@ -380,6 +380,12 @@ Return ONLY valid JSON. Do not include any text outside the JSON object.`;
         isLowConfidence,
         recommendation: lf.recommendation,
         createdAt: new Date().toISOString(),
+        detectorId: "llm",
+        ruleId: "llm/generated",
+        evidenceIds: lf.evidence_refs,
+        graphNodeIds: [],
+        graphEdgeIds: [],
+        recommendationPlaceholder: lf.recommendation,
       });
     }
 

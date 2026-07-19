@@ -34,6 +34,12 @@ export const visualDetector: HeuristicDetector = {
           recommendation:
             'Add <meta name="viewport" content="width=device-width, initial-scale=1"> to the <head>.',
           createdAt: new Date().toISOString(),
+          detectorId: "visual",
+          ruleId: "visual/viewport",
+          evidenceIds: [dom.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: 'Add <meta name="viewport" content="width=device-width, initial-scale=1"> to the <head>.',
         });
       }
 
@@ -55,6 +61,12 @@ export const visualDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: "Add a favicon <link> tag pointing to an .ico or .png file in the <head>.",
           createdAt: new Date().toISOString(),
+          detectorId: "visual",
+          ruleId: "visual/favicon",
+          evidenceIds: [dom.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: "Add a favicon <link> tag pointing to an .ico or .png file in the <head>.",
         });
       }
 
@@ -72,10 +84,16 @@ export const visualDetector: HeuristicDetector = {
           source: "heuristic",
           evidenceRefs: [{ type: "dom_snapshot", id: dom.id }],
           isLowConfidence: false,
-          recommendation: "Add a descriptive <title> tag in the <head> section.",
-          createdAt: new Date().toISOString(),
-        });
-      } else if (titleMatch[1].trim().length === 0) {
+            recommendation: "Add a descriptive <title> tag in the <head> section.",
+            createdAt: new Date().toISOString(),
+            detectorId: "visual",
+            ruleId: "visual/title",
+            evidenceIds: [dom.id],
+            graphNodeIds: [],
+            graphEdgeIds: [],
+            recommendationPlaceholder: "Add a descriptive <title> tag in the <head> section.",
+          });
+        } else if (titleMatch[1].trim().length === 0) {
         findings.push({
           id: crypto.randomUUID(),
           investigationId: "",
@@ -87,12 +105,18 @@ export const visualDetector: HeuristicDetector = {
           source: "heuristic",
           evidenceRefs: [{ type: "dom_snapshot", id: dom.id }],
           isLowConfidence: false,
-          recommendation: "Add descriptive text to the <title> tag.",
-          createdAt: new Date().toISOString(),
-        });
-      }
+            recommendation: "Add descriptive text to the <title> tag.",
+            createdAt: new Date().toISOString(),
+            detectorId: "visual",
+            ruleId: "visual/title",
+            evidenceIds: [dom.id],
+            graphNodeIds: [],
+            graphEdgeIds: [],
+            recommendationPlaceholder: "Add descriptive text to the <title> tag.",
+          });
+        }
 
-      // Check for missing lang attribute on <html>.
+        // Check for missing lang attribute on <html>.
       const hasLang = /<html[^>]*\blang\s*=/i.test(html);
       if (!hasLang) {
         findings.push({
@@ -108,6 +132,12 @@ export const visualDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: 'Add lang="en" (or appropriate language code) to the <html> tag.',
           createdAt: new Date().toISOString(),
+          detectorId: "visual",
+          ruleId: "visual/lang",
+          evidenceIds: [dom.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: 'Add lang="en" (or appropriate language code) to the <html> tag.',
         });
       }
 
@@ -127,6 +157,12 @@ export const visualDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: 'Add <!DOCTYPE html> as the very first line of the document.',
           createdAt: new Date().toISOString(),
+          detectorId: "visual",
+          ruleId: "visual/doctype",
+          evidenceIds: [dom.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: 'Add <!DOCTYPE html> as the very first line of the document.',
         });
       }
 
@@ -147,6 +183,12 @@ export const visualDetector: HeuristicDetector = {
           isLowConfidence: true,
           recommendation: "Review overflow:hidden usage. Ensure content is not being unintentionally clipped.",
           createdAt: new Date().toISOString(),
+          detectorId: "visual",
+          ruleId: "visual/overflow",
+          evidenceIds: [dom.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: "Review overflow:hidden usage. Ensure content is not being unintentionally clipped.",
         });
       }
 
@@ -174,6 +216,12 @@ export const visualDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: `Add the following meta tags: ${missingOg.map((t) => `<meta property="${t}" content="...">`).join(", ")}`,
           createdAt: new Date().toISOString(),
+          detectorId: "visual",
+          ruleId: "visual/og-tags",
+          evidenceIds: [dom.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: `Add the following meta tags: ${missingOg.map((t) => `<meta property="${t}" content="...">`).join(", ")}`,
         });
       }
     }
@@ -195,6 +243,12 @@ export const visualDetector: HeuristicDetector = {
           isLowConfidence: true,
           recommendation: "Check if the page requires JavaScript to render or if it redirects to a login page.",
           createdAt: new Date().toISOString(),
+          detectorId: "visual",
+          ruleId: "visual/empty-screenshot",
+          evidenceIds: [screenshot.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: "Check if the page requires JavaScript to render or if it redirects to a login page.",
         });
       }
     }

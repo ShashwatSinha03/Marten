@@ -1,4 +1,4 @@
-import type { Finding } from "@/types";
+import type { Finding, FindingSeverity } from "@/types";
 import type { HeuristicDetector, DetectorContext } from "./types";
 
 /**
@@ -34,6 +34,12 @@ export const networkDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: "Load all resources over HTTPS. Update resource URLs from http:// to https://.",
           createdAt: new Date().toISOString(),
+          detectorId: "network",
+          ruleId: "network/mixed-content",
+          evidenceIds: [net.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: "Load all resources over HTTPS. Update resource URLs from http:// to https://.",
         });
       }
 
@@ -59,6 +65,12 @@ export const networkDetector: HeuristicDetector = {
             isLowConfidence: false,
             recommendation: getStatusRecommendation(status),
             createdAt: new Date().toISOString(),
+            detectorId: "network",
+            ruleId: "network/failed-request",
+            evidenceIds: [net.id],
+            graphNodeIds: [],
+            graphEdgeIds: [],
+            recommendationPlaceholder: getStatusRecommendation(status) ?? "",
           });
         }
       }
@@ -79,6 +91,12 @@ export const networkDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: "Investigate server-side errors. Check API endpoints, server logs, and ensure all backend services are healthy.",
           createdAt: new Date().toISOString(),
+          detectorId: "network",
+          ruleId: "network/failed-request",
+          evidenceIds: [net.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: "Investigate server-side errors. Check API endpoints, server logs, and ensure all backend services are healthy.",
         });
       }
 
@@ -102,6 +120,12 @@ export const networkDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: "Optimize slow endpoints. Consider caching, CDN, image optimization, and server-side performance improvements.",
           createdAt: new Date().toISOString(),
+          detectorId: "network",
+          ruleId: "network/slow-resource",
+          evidenceIds: [net.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: "Optimize slow endpoints. Consider caching, CDN, image optimization, and server-side performance improvements.",
         });
       }
 
@@ -120,6 +144,12 @@ export const networkDetector: HeuristicDetector = {
           isLowConfidence: false,
           recommendation: "Reduce the number of network requests. Bundle assets, use lazy loading, and consolidate API calls.",
           createdAt: new Date().toISOString(),
+          detectorId: "network",
+          ruleId: "network/excessive-requests",
+          evidenceIds: [net.id],
+          graphNodeIds: [],
+          graphEdgeIds: [],
+          recommendationPlaceholder: "Reduce the number of network requests. Bundle assets, use lazy loading, and consolidate API calls.",
         });
       }
     }
