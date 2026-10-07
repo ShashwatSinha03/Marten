@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: marten-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: MARTEN_STARTUP_PROBE
+        value: "false"

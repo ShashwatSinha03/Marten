@@ -1,0 +1,5 @@
+{
+  "name": "@marten/api",
+  "private": true,
+  "type": "module"
+}
