@@ -38,4 +38,4 @@ The first release must perform real investigations, not simulate activity using 
 
 ## Status
 
-The integrated design was approved on 2026-10-06 and Sprint 0 was authorized. The Sprint 0 local fixture harness is implemented and verified; live Render feasibility remains pending. See `docs/sprints/sprint-0-results.md`. No services have been deployed or external accounts configured. Specialist proposals live under `docs/discovery`; the integrated design and sprint roadmap will live under `docs/plans`.
+The integrated design was approved on 2026-10-06 and Sprint 0 was authorized. The Sprint 0 local fixture harness is implemented and verified; live Render feasibility remains pending. See `docs/sprints/sprint-0-results.md`. Sprint 1 local interface and authenticated fixture-flow code are implemented; live integrations remain unverified. See `docs/sprints/sprint-1-results.md`. No services have been deployed or external accounts configured. Specialist proposals live under `docs/discovery`; the integrated design and sprint roadmap will live under `docs/plans`.

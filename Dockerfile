@@ -9,7 +9,8 @@ RUN pnpm install --frozen-lockfile
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
 RUN pnpm exec playwright install --with-deps chromium --only-shell
 COPY tsconfig.json ./
-COPY apps ./apps
+COPY apps/api ./apps/api
+COPY packages ./packages
 RUN pnpm typecheck && mkdir -p /app/output && chown node:node /app/output
 USER node
 ENV NODE_ENV=production

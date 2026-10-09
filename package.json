@@ -9,7 +9,10 @@
     "test": "node --import tsx --test apps/api/test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "probe": "node --import tsx apps/api/src/probe.ts",
-    "start": "node --import tsx apps/api/src/server.ts"
+    "start": "node --import tsx apps/api/src/server.ts",
+    "web:dev": "pnpm --filter @marten/web dev",
+    "web:build": "pnpm --filter @marten/web build",
+    "web:typecheck": "pnpm --filter @marten/web typecheck"
   },
   "dependencies": {
     "fastify": "5.12.5",

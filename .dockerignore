@@ -3,3 +3,7 @@ node_modules
 output
 .env*
 docs
+apps/web
+.playwright-cli
+**/.env*
+**/*.tsbuildinfo

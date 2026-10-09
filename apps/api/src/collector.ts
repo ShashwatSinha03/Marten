@@ -12,15 +12,16 @@ export interface ProbeEvent {
   state?: string;
   url?: string;
 }
-interface Options {
+export interface Options {
   directory?: string;
   maxPages?: number;
   durationMs?: number;
   navigationTimeoutMs?: number;
   signal?: AbortSignal;
-  onEvent?: (event: ProbeEvent) => void;
+  onEvent?: (event: ProbeEvent) => void | Promise<void>;
+  onEvidence?: (evidence: Evidence, png: Buffer) => Promise<void>;
 }
-interface Evidence {
+export interface Evidence {
   id: string;
   url: string;
   status: number | null;
@@ -40,6 +41,7 @@ export async function runFixtureProbe(options: Options = {}) {
         "navigationTimeoutMs",
         "signal",
         "onEvent",
+        "onEvidence",
       ].includes(key)
     )
       throw new Error(`Unknown option: ${key}`);
@@ -108,7 +110,7 @@ export async function runFixtureProbe(options: Options = {}) {
       join(directory, "events.jsonl"),
       JSON.stringify(entry) + "\n",
     );
-    options.onEvent?.(entry);
+    await options.onEvent?.(entry);
   };
   const stopped = () => {
     if (options.signal?.aborted) {
@@ -194,6 +196,7 @@ export async function runFixtureProbe(options: Options = {}) {
             join(directory, `${id}.json`),
             JSON.stringify(pages.at(-1), null, 2),
           );
+          await options.onEvidence?.(pages.at(-1)!, png);
           sample();
           await event({ type: "page_captured", pageId: id, url });
         }
