@@ -14,7 +14,9 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-24.04
+    # Ubuntu 24.04 blocks this Playwright binary's user-namespace sandbox.
+    # Keep Chromium sandboxed on the supported 22.04 runner; do not alter host security.
+    runs-on: ubuntu-22.04
     timeout-minutes: 20
     env:
       NEXT_TELEMETRY_DISABLED: "1"
