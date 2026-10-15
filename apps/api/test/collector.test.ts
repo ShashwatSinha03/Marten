@@ -7,7 +7,7 @@ import { runFixtureProbe } from "../src/collector.js";
 const output = () => mkdtemp(join(tmpdir(), "marten-test-"));
 test("captures real healthy and 404 evidence, enforces page cap, and persists linked events", async () => {
   const directory = await output();
-  const result = await runFixtureProbe({ directory, maxPages: 2 });
+  const result = await runFixtureProbe({ directory, maxPages: 2, navigationTimeoutMs: 5000 });
   assert.equal(result.state, "completed");
   assert.deepEqual(
     result.pages.map((p: any) => p.status),
@@ -84,7 +84,7 @@ test("deadline interrupts an active hanging navigation and retains completed pag
   let reachedHang = false;
   const result = await runFixtureProbe({
     directory: await output(),
-    durationMs: 2500,
+    durationMs: 6000,
     navigationTimeoutMs: 10000,
     onEvent: (event) => {
       if (event.url?.endsWith("/hang")) reachedHang = true;
@@ -92,9 +92,11 @@ test("deadline interrupts an active hanging navigation and retains completed pag
   });
   assert.equal(reachedHang, true);
   assert.equal(result.state, "timed_out");
+  assert.equal(result.exploration.destinations.find(d => d.url.endsWith("/hang"))?.reason, "deadline");
+  assert.equal(result.exploration.failed, 1);
   assert.equal(result.pages.length, 2);
   assert.equal(result.browserClosed, true);
-  assert.ok(result.elapsedMs < 5000);
+  assert.ok(result.elapsedMs < 8500);
 });
 
 test("blocks a real off-origin fixture subrequest before it reaches the second server", async () => {
@@ -104,4 +106,40 @@ test("blocks a real off-origin fixture subrequest before it reaches the second s
   });
   assert.ok(result.blockedRequests >= 1);
   assert.equal(result.offOriginRequestsReceived, 0);
+});
+
+test("discovers canonical links and records unvisited and policy-rejected destinations", async () => {
+  const result = await runFixtureProbe({ directory: await output(), maxPages: 2, navigationTimeoutMs: 5000 });
+  const map = result.exploration;
+  assert.equal(map.attempted, 2);
+  assert.equal(map.stopReason, "page_budget");
+  assert.equal(map.destinations.filter(d => new URL(d.url).pathname === "/missing").length, 1);
+  assert.ok(map.destinations.some(d => d.reason === "action_policy"));
+  assert.ok(map.destinations.some(d => d.reason === "off_origin"));
+  assert.equal(result.pages[1].sourceEvidenceId, "page-1");
+});
+
+test("brief prioritizes discovered healthy destination without changing policy", async () => {
+  const result = await runFixtureProbe({ directory: await output(), maxPages: 2, brief: "healthy guide logout external" });
+  assert.equal(new URL(result.pages[1].url).pathname, "/guide");
+  assert.deepEqual(result.pages.map(p => p.status), [200, 200]);
+  assert.equal(result.offOriginRequestsReceived, 0);
+});
+
+test("failed navigation consumes budget and collection continues", async () => {
+  const result = await runFixtureProbe({ directory: await output(), brief: "hanging destination", navigationTimeoutMs: 1000 });
+  assert.equal(result.exploration.attempted, 3);
+  assert.equal(result.exploration.failed, 1);
+  assert.equal(result.pages.length, 2);
+  assert.equal(result.pages[1].status, 404);
+  assert.equal(result.state, "partial");
+});
+
+
+test("persistence failure aborts collection and is not a navigation failure", async () => {
+  const result = await runFixtureProbe({ directory: await output(), onEvidence: async () => { throw new Error("storage failed"); } });
+  assert.equal(result.exploration.attempted, 1);
+  assert.equal(result.exploration.failed, 0);
+  assert.equal(result.exploration.stopReason, "failed");
+  assert.match(result.error ?? "", /storage failed/);
 });

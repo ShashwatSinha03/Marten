@@ -2,12 +2,14 @@
 -- Review and apply to a new Marten project only.
 create table public.marten_runs (
  id uuid primary key,
- owner_id uuid not null references auth.users(id) on delete cascade,
+ -- Keep cleanup metadata after account deletion; ownerless rows remain API-inaccessible.
+ owner_id uuid references auth.users(id) on delete set null,
  created_at timestamptz not null,
  expires_at timestamptz not null,
  data jsonb not null
 );
 create index marten_runs_owner_idx on public.marten_runs(owner_id, created_at desc);
+create index marten_runs_expiry_idx on public.marten_runs(expires_at);
 alter table public.marten_runs enable row level security;
 revoke all on public.marten_runs from anon, authenticated;
 grant select, insert, update, delete on public.marten_runs to service_role;

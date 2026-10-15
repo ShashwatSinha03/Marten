@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { createRetentionWorker } from "./retention.js";
 import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -7,9 +8,10 @@ import {
   FIXTURE_URL,
   type Report,
   type Evidence,
+  type Exploration,
 } from "../../../packages/contracts/src/index.js";
 import { runFixtureProbe, type Options } from "./collector.js";
-import { analyzeEvidence, configuredModel } from "./gemini.js";
+import { analyzeEvidence, configuredModel, groundReport } from "./gemini.js";
 import {
   supabaseConfiguration,
   type Repository,
@@ -21,6 +23,7 @@ interface Dependencies {
   collect?: (options: Options) => Promise<{
     state: string;
     pages: unknown[];
+    exploration?: Exploration;
   }>;
   analyze?: (
     evidence: Evidence[],
@@ -41,6 +44,8 @@ export function buildApp(
         task: Promise<void>;
       }
     | undefined;
+  const retention = deps && createRetentionWorker(deps.repository, { activeId: () => active?.id });
+  app.addHook("onReady", async () => { retention?.start(); });
   let admitting = false;
   const clean = (run: StoredRun) => {
     const { ownerId, events, ...publicRun } = run;
@@ -80,7 +85,7 @@ export function buildApp(
   app.get("/health", async () => ({ status: "ok", mode: "fixture-only" }));
   app.addHook("onClose", async () => {
     active?.controller.abort();
-    await active?.task;
+    await Promise.all([retention?.stop(), active?.task]);
   });
   app.register(
     async (api) => {
@@ -176,7 +181,12 @@ export function buildApp(
               directory = await mkdtemp(join(tmpdir(), "marten-"));
               const result = await (deps!.collect ?? runFixtureProbe)({
                 directory,
+                brief: run.brief,
                 signal: controller.signal,
+                onExploration: async (exploration) => {
+                  run.exploration = structuredClone(exploration);
+                  await deps!.repository.put(run);
+                },
                 onEvidence: async (page, png) => {
                   await deps!.repository.upload(run.id, page.id, png);
                   const { screenshot, ...evidence } = page;
@@ -188,6 +198,7 @@ export function buildApp(
                   await deps!.repository.put(run);
                 },
               });
+              run.exploration = result.exploration;
               if (controller.signal.aborted || result.state === "cancelled") {
                 run.status = "cancelled";
                 return;
@@ -205,6 +216,7 @@ export function buildApp(
                 key,
                 controller.signal,
               );
+              run.report = groundReport(run.report, run.evidence);
               run.report.limitations.push(
                 "Analysis uses captured text, links and HTTP statuses; screenshots are provided for human inspection, not model visual analysis.",
                 "Controlled fixture only; at most three pages inspected. No form submissions or authenticated flows tested.",

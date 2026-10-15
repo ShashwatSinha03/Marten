@@ -10,6 +10,8 @@ import {
   type Investigation,
 } from "../lib/client";
 import { Workspace, ReportView } from "./workspace";
+import { MartenMascot } from "./marten-mascot";
+import { useSlowRequest } from "../lib/use-slow-request";
 import { sampleReport } from "../lib/sample";
 
 export function Icon({
@@ -60,6 +62,9 @@ export function MartenApp() {
   const [history, setHistory] = useState<Investigation[]>([]);
   const [run, setRun] = useState<Investigation | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(false);
+  const [authPending, setAuthPending] = useState(false);
+  const slow = useSlowRequest(busy || historyLoading || authPending);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const account = useRef<string | null>(null);
   const navigation = useRef(0);
@@ -89,7 +94,7 @@ export function MartenApp() {
       account.current = data.session?.user.id ?? null;
       setSession(data.session);
       if (error) setError("Sign-in could not be completed. Please try again.");
-    });
+    }).catch(() => setError("Sign-in could not be checked. Check your connection and try signing in again."));
     const { data: subscription } = auth.onAuthStateChange((_event, next) => {
       const nextAccount = next?.user.id ?? null;
       if (account.current !== nextAccount) {
@@ -100,6 +105,7 @@ export function MartenApp() {
         setApiKey("");
         setBusy(false);
         setHistoryLoading(false);
+        if (!next) setView("start");
       }
       setSession(next);
     });
@@ -111,6 +117,8 @@ export function MartenApp() {
     setError("");
     setView(next);
     setApiKey("");
+    setBusy(false);
+    setHistoryLoading(false);
     window.scrollTo({ top: 0 });
   }
   async function signIn(provider: "github" | "google") {
@@ -126,25 +134,30 @@ export function MartenApp() {
     } catch {
       /* Sign-in still works without draft storage. */
     }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: window.location.origin },
-    });
-    if (error)
-      setError(
-        "Sign-in could not start. Please try again or check the provider configuration.",
-      );
+    setAuthPending(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) throw error;
+    } catch {
+      setError("Sign-in could not start. Check your connection and try again.");
+    } finally {
+      setAuthPending(false);
+    }
   }
   async function loadHistory() {
     navigate("history");
     if (!session) return;
     setHistoryLoading(true);
+    setHistoryError(false);
     const ticket = navigation.current;
     try {
       const items = await client.list();
       if (ticket === navigation.current) setHistory(items);
     } catch (e) {
-      if (ticket === navigation.current) setError(errorText(e));
+      if (ticket === navigation.current) { setError(errorText(e)); setHistoryError(true); }
     } finally {
       if (ticket === navigation.current) setHistoryLoading(false);
     }
@@ -181,7 +194,7 @@ export function MartenApp() {
     } catch (e) {
       if (ticket === navigation.current) setError(errorText(e));
     } finally {
-      setBusy(false);
+      if (ticket === navigation.current) setBusy(false);
     }
   }
   async function openRun(id: string) {
@@ -194,21 +207,23 @@ export function MartenApp() {
         navigate("run");
       }
     } catch (e) {
-      setError(errorText(e));
+      if (ticket === navigation.current) setError(errorText(e));
     } finally {
-      setBusy(false);
+      if (ticket === navigation.current) setBusy(false);
     }
   }
   async function removeRun(id: string) {
+    const ticket = navigation.current;
     setBusy(true);
     try {
       await client.remove(id);
+      if (ticket !== navigation.current) return;
       setHistory((items) => items.filter((item) => item.id !== id));
       setDeleteId(null);
     } catch (e) {
-      setError(errorText(e));
+      if (ticket === navigation.current) setError(errorText(e));
     } finally {
-      setBusy(false);
+      if (ticket === navigation.current) setBusy(false);
     }
   }
 
@@ -243,10 +258,13 @@ export function MartenApp() {
             <button
               className="button subtle small"
               onClick={async () => {
-                const result = await supabase?.auth.signOut();
-                if (result?.error)
-                  setError("Sign-out failed. Please try again.");
-                else navigate("home");
+                try {
+                  const result = await supabase?.auth.signOut();
+                  if (result?.error) throw result.error;
+                  navigate("home");
+                } catch {
+                  setError("Sign-out failed. Check your connection and try again.");
+                }
               }}
             >
               Sign out
@@ -262,6 +280,7 @@ export function MartenApp() {
         </nav>
       </header>
       <main id="main">
+        {slow && <p className="notice" role="status">This is taking longer than usual. The service may be waking up; please keep this page open while we wait.</p>}
         {error && (
           <div className="error-banner" role="alert">
             {error}
@@ -321,14 +340,7 @@ export function MartenApp() {
                 </button>
               </div>
               <div className="mascot-wrap">
-                <img
-                  className="hero-mascot"
-                  src="/marten-observe.png"
-                  alt="A calm, curious brown marten with a cream throat patch"
-                  fetchPriority="high"
-                  width="600"
-                  height="600"
-                />
+                <MartenMascot pose="observe" className="hero-mascot" />
                 <div className="mascot-note">
                   <span className="tiny-line" />
                   Naturally observant.
@@ -385,13 +397,7 @@ export function MartenApp() {
                 One URL. An optional brief.
                 <br />A trail of evidence you can follow.
               </p>
-              <img
-                src="/marten-observe.png"
-                width="260"
-                height="260"
-                alt=""
-                className="small-mascot"
-              />
+              <MartenMascot pose={busy ? "think" : "ready"} className="small-mascot" />
             </div>
             <div className="start-panel">
               <h2>Start an investigation</h2>
@@ -450,6 +456,7 @@ export function MartenApp() {
                       <button
                         type="button"
                         className="button subtle"
+                        disabled={authPending}
                         onClick={() => signIn("github")}
                       >
                         Continue with GitHub
@@ -457,6 +464,7 @@ export function MartenApp() {
                       <button
                         type="button"
                         className="button subtle"
+                        disabled={authPending}
                         onClick={() => signIn("google")}
                       >
                         Continue with Google
@@ -540,7 +548,7 @@ export function MartenApp() {
           <section className="report-page">
             <div className="page-heading">
               <div>
-                <h1>A report, with the receipts.</h1>
+                <div className="mascot-heading"><MartenMascot pose="report" className="workspace-mascot" /><h1>A report, with the receipts.</h1></div>
                 <p>
                   Explore how Marten connects a finding to the evidence behind
                   it.
@@ -606,6 +614,7 @@ export function MartenApp() {
             </div>
             {!session ? (
               <div className="empty-state">
+                <MartenMascot pose="rest" className="empty-mascot" />
                 <h2>Your evidence has a home.</h2>
                 <p>
                   Sign in to start an investigation and return to its findings
@@ -619,9 +628,15 @@ export function MartenApp() {
                 </button>
               </div>
             ) : historyLoading ? (
-              <p role="status">Loading investigations…</p>
+              <div className="mascot-loading"><MartenMascot pose="think" className="workspace-mascot" /><p role="status">Loading investigations…</p></div>
+            ) : historyError ? (
+              <div className="notice" role="status">
+                <p>Your investigations could not be refreshed. Retry to retrieve the latest saved evidence.</p>
+                <button className="text-link" onClick={loadHistory}>Retry investigations</button>
+              </div>
             ) : history.length === 0 ? (
               <div className="empty-state">
+                <MartenMascot pose="rest" className="empty-mascot" />
                 <h2>No investigations yet.</h2>
                 <p>
                   Start with the controlled fixture to collect your first trail
@@ -645,6 +660,7 @@ export function MartenApp() {
                         {new Date(item.createdAt).toLocaleDateString()} ·{" "}
                         {item.evidence.length} captured pages
                       </span>
+                      <span>Available until {new Date(item.expiresAt).toLocaleString()} (your local time)</span>
                     </button>
                     <span className="status-label">{item.status}</span>
                     {deleteId === item.id ? (

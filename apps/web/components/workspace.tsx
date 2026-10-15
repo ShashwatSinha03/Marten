@@ -7,6 +7,8 @@ import {
   type InvestigationEvent,
   type Report,
 } from "../lib/client";
+import { useSlowRequest } from "../lib/use-slow-request";
+import { MartenMascot } from "./marten-mascot";
 import { Icon } from "./marten-app";
 const active = (status: string) =>
   status === "collecting" || status === "analyzing";
@@ -62,6 +64,24 @@ export function ReportView({
                 <dd>{finding.impact}</dd>
                 <dt>Next step</dt>
                 <dd>{finding.recommendation}</dd>
+                {finding.reproduction && finding.reproduction.length > 0 && (
+                  <>
+                    <dt>Reproduction context</dt>
+                    <dd>
+                      <ol className="reproduction-steps">
+                        {finding.reproduction.map((step, index) => (
+                          <li key={index}>{step}</li>
+                        ))}
+                      </ol>
+                    </dd>
+                  </>
+                )}
+                {finding.uncertainty && (
+                  <>
+                    <dt>Uncertainty</dt>
+                    <dd>{finding.uncertainty}</dd>
+                  </>
+                )}
               </dl>
               <div className="citations">
                 <span>Evidence</span>
@@ -98,6 +118,88 @@ export function ReportView({
   );
 }
 
+const explorationStops = {
+  exhausted: "No eligible destinations remain in the recorded queue.",
+  page_budget: "The page-attempt limit was reached.",
+  deadline: "The collection time limit was reached.",
+  cancelled: "Collection was stopped.",
+  failed: "Collection could not finish.",
+};
+
+export function ExplorationView({
+  run,
+  onEvidence,
+}: {
+  run: Investigation;
+  onEvidence: (id: string) => void;
+}) {
+  const exploration = run.exploration;
+  if (!exploration) return null;
+  const skipped = exploration.destinations.filter(
+    (destination) => destination.outcome === "skipped",
+  ).length;
+  return (
+    <section className="exploration" aria-label="Navigation and coverage">
+      <h2>Navigation and coverage</h2>
+      <p className="exploration-summary">
+        {exploration.captured} captured · {exploration.failed} failed · {skipped} unvisited
+      </p>
+      <p className="field-help">
+        {exploration.attempted} of {exploration.maxPages} page attempts used.
+        {" "}{run.status === "collecting"
+          ? "Collection is in progress."
+          : explorationStops[exploration.stopReason]} Only recorded destinations
+        are shown, up to {exploration.candidateLimit}; this is not a complete site map.
+        A failed capture alone does not confirm a product defect.
+      </p>
+      {exploration.discoveryTruncated && (
+        <p className="field-help">
+          The discovery limit was reached. Additional links may exist beyond
+          the destinations recorded here.
+        </p>
+      )}
+      <details className="navigation-map">
+        <summary>Explore {exploration.destinations.length} recorded destinations</summary>
+        <ol className="destination-list">
+          {exploration.destinations.map((destination, index) => {
+            const source = run.evidence.find(
+              (item) => item.id === destination.sourceEvidenceId,
+            );
+            const captured = destination.outcome === "captured"
+              ? run.evidence.find((item) => item.id === destination.evidenceId)
+              : undefined;
+            return (
+              <li key={`${destination.url}-${index}`}>
+                <div className="destination-route">
+                  <span className="destination-source">
+                    {source ? `From ${source.url}` : destination.sourceEvidenceId
+                      ? "From an unavailable source capture" : "Starting destination"}
+                  </span>
+                  <span className="destination-url">{destination.url}</span>
+                  {destination.linkText && <span>Link: {destination.linkText}</span>}
+                  {destination.reason && (
+                    <span className="field-help">{destination.reason.replaceAll("_", " ")}</span>
+                  )}
+                </div>
+                <div className="destination-result">
+                  <span className={`destination-outcome ${destination.outcome}`}>
+                    {destination.outcome === "skipped" ? "Unvisited" : destination.outcome}
+                  </span>
+                  {captured && (
+                    <button className="text-link" onClick={() => onEvidence(captured.id)}>
+                      View evidence <Icon name="arrow" size={12} />
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </details>
+    </section>
+  );
+}
+
 export function Workspace({
   initial,
   onBack,
@@ -113,6 +215,10 @@ export function Workspace({
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [imageError, setImageError] = useState("");
   const [connectionError, setConnectionError] = useState("");
+  const [refresh, setRefresh] = useState(0);
+  const [imageRetry, setImageRetry] = useState(0);
+  const [pollPending, setPollPending] = useState(false);
+  const slow = useSlowRequest(pollPending);
   const [cancelPending, setCancelPending] = useState(false);
   const [tab, setTab] = useState<"activity" | "evidence">("activity");
   const [zoom, setZoom] = useState(false);
@@ -123,6 +229,7 @@ export function Workspace({
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
+      setPollPending(true);
       try {
         // Read events after status: a terminal snapshot means its final events
         // are persisted, so stopping polling cannot omit the last activity.
@@ -166,6 +273,8 @@ export function Workspace({
           );
           timer = setTimeout(poll, 5000);
         }
+      } finally {
+        if (!stopped) setPollPending(false);
       }
     }
     void poll();
@@ -173,7 +282,7 @@ export function Workspace({
       stopped = true;
       clearTimeout(timer);
     };
-  }, [initial.id]);
+  }, [initial.id, refresh]);
   useEffect(() => {
     setScreenshot(null);
     setImageError("");
@@ -198,7 +307,7 @@ export function Workspace({
       stopped = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [initial.id, selected]);
+  }, [initial.id, selected, imageRetry]);
   function selectEvidence(id: string) {
     if (!run.evidence.some((item) => item.id === id)) return;
     setSelected(id);
@@ -212,7 +321,7 @@ export function Workspace({
       setRun(next);
       if (!active(next.status)) setCancelPending(false);
     } catch {
-      setConnectionError("Cancellation could not be requested. Try again.");
+      setConnectionError("Cancellation could not be confirmed. Check the latest status before trying again.");
       setCancelPending(false);
     }
   }
@@ -228,6 +337,7 @@ export function Workspace({
           {run.brief && <p>{run.brief}</p>}
         </div>
         <div className="run-actions">
+          <MartenMascot pose={run.status === "analyzing" ? "think" : run.status === "collecting" ? "investigate" : run.status === "completed" ? "report" : "rest"} className="workspace-mascot" />
           <span className="status-label" role="status">
             {run.status}
           </span>
@@ -245,12 +355,16 @@ export function Workspace({
       <div className="run-metadata">
         <span>Controlled fixture</span>
         <span>{run.evidence.length} pages captured</span>
-        <span>Expires {new Date(run.expiresAt).toLocaleDateString()}</span>
+        <span>Available until <time dateTime={run.expiresAt}>{new Date(run.expiresAt).toLocaleString()}</time> (your local time)</span>
       </div>
+      {slow && <p className="notice" role="status">The service is taking longer to respond and may be waking up. Your captured evidence stays here while we wait.</p>}
       {connectionError && (
-        <p className="notice" role="status">
-          {connectionError}
-        </p>
+        <div className="notice" role="status">
+          <p>{connectionError}</p>
+          <button className="text-link" disabled={pollPending} onClick={() => setRefresh((value) => value + 1)}>
+            {pollPending ? "Reconnecting…" : "Retry connection"}
+          </button>
+        </div>
       )}
       {run.errorCode && (
         <div className="notice">
@@ -369,7 +483,10 @@ export function Workspace({
                     alt={`Captured page at ${evidence.url}`}
                   />
                 ) : (
-                  <p>{imageError || "Loading private screenshot…"}</p>
+                  <div role="status">
+                    <p>{imageError || "Loading private screenshot…"}</p>
+                    {imageError && <button className="text-link" onClick={() => setImageRetry((value) => value + 1)}>Retry screenshot</button>}
+                  </div>
                 )}
               </div>
               <details className="captured-text">
@@ -391,6 +508,7 @@ export function Workspace({
           )}
         </div>
       </div>
+      <ExplorationView run={run} onEvidence={selectEvidence} />
       {run.report && (
         <ReportView report={run.report} onEvidence={selectEvidence} />
       )}

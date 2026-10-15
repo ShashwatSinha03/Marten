@@ -6,6 +6,24 @@ Enable Google and GitHub OAuth; configure provider credentials and allow the exa
 
 The API verifies every bearer token through Supabase Auth, then checks ownership and expiry for every resource. Tables have RLS enabled and no anon/authenticated grants. Screenshots are private and streamed through the API after authorization. Never expose the service secret in frontend environment variables.
 
-Initial API uses a single backend process and bounded JSON documents per run, saved after every evidence capture and event. Deploy exactly one instance; multi-replica locking is not implemented. A restart interrupts current investigations; reading such a run marks it interrupted. Access expires after seven days; physical object cleanup is a deployment prerequisite, not currently scheduled. Delete removes private screenshots and the database row. No API key is persisted.
+Initial API uses a single backend process and bounded JSON documents per run, saved after every evidence capture and event. Deploy exactly one instance; multi-replica locking is not implemented. A restart interrupts current investigations; reading such a run marks it interrupted. Access expires after seven days. The retention worker attempts bounded physical cleanup at startup and every 15 minutes while the backend is awake; sleeping or unavailable services delay removal, so seven days is an access limit, not an exact deletion deadline. Delete removes private screenshots before the database row. No API key is persisted.
+
+Account deletion sets `owner_id` to null instead of cascading the row away: this preserves expiry and object metadata for cleanup, while the API ownership check denies access. Cleanup must delete through the Storage API before removing the run row; deleting SQL storage metadata does not remove underlying objects. [Supabase object deletion](https://supabase.com/docs/guides/storage/management/delete-objects)
+
+## Updating an existing Sprint 1/2 schema
+
+Do not rerun the full create-only `schema.sql` against an existing database. With the CLI installed, inspect `supabase migration new --help`, create a migration, and put the following idempotent change in its generated file. Test locally and run advisors before applying to the intended Marten project. This assumes the default constraint name from the original checked-in schema; inspect it first if the schema was customized.
+
+```sql
+begin;
+alter table public.marten_runs alter column owner_id drop not null;
+alter table public.marten_runs drop constraint if exists marten_runs_owner_id_fkey;
+alter table public.marten_runs add constraint marten_runs_owner_id_fkey
+  foreign key (owner_id) references auth.users(id) on delete set null;
+create index if not exists marten_runs_expiry_idx on public.marten_runs(expires_at);
+commit;
+```
+
+Existing orphaned storage objects from earlier account deletions cannot be recovered from missing rows by this change. Audit them separately through the Storage API before launch. Test account deletion with a disposable user and screenshot: the row must remain ownerless, API/direct-client reads must fail, and expiry cleanup must remove both object and row.
 
 Live Auth, RLS, Storage, and SQL correctness remain unverified until a Marten project is provisioned. Check cross-user access and missing-token access directly against both REST and Storage after applying the schema.

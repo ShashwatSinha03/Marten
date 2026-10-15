@@ -1297,3 +1297,82 @@ summary {
     transition: none !important;
   }
 }
+
+/* Rendered 3D poses, with a brief gesture when the real state changes. */
+.marten-mascot {
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+  transform-origin: 50% 85%;
+  user-select: none;
+}
+.marten-mascot.hero-mascot { width: 440px; max-width: 100%; height: auto; margin: 0; }
+.marten-mascot.small-mascot { width: 260px; height: auto; }
+.workspace-mascot { width: 96px; height: 96px; }
+.empty-mascot { width: 150px; height: auto; margin-bottom: 18px; }
+.mascot-heading, .mascot-loading { display: flex; align-items: center; gap: 22px; }
+.marten-observe { animation: marten-attentive 2400ms ease-in-out 1; }
+.marten-investigate { animation: marten-inspect 2200ms ease-in-out 1; }
+.marten-think { animation: marten-consider 2800ms ease-in-out 1; }
+.marten-report { animation: marten-settle 650ms cubic-bezier(0.16, 1, 0.3, 1) 1; }
+@keyframes marten-attentive {
+  0%, 100% { transform: rotate(0); }
+  40% { transform: rotate(-1.5deg); }
+  70% { transform: rotate(.5deg); }
+}
+@keyframes marten-inspect {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  45% { transform: translateX(-3px) rotate(-1.5deg); }
+}
+@keyframes marten-consider {
+  0%, 100% { transform: rotate(0); }
+  40% { transform: rotate(1.5deg); }
+  70% { transform: rotate(-.5deg); }
+}
+@keyframes marten-settle {
+  from { transform: rotate(-1deg); }
+  to { transform: rotate(0); }
+}
+@media (max-width: 760px) {
+  .marten-mascot.hero-mascot { width: 320px; margin-top: -20px; }
+  .marten-mascot.small-mascot { display: block; width: 120px; margin-top: 15px; }
+  .mascot-heading { gap: 14px; }
+  .mascot-heading .workspace-mascot { width: 72px; height: 72px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marten-mascot { animation: none !important; }
+}
+
+/* Recorded navigation stays separate from report interpretations. */
+.exploration {
+  padding: 32px 0;
+  border-bottom: 1px solid var(--line);
+}
+.exploration h2 { font-size: 24px; }
+.exploration-summary { margin: 14px 0 8px; font-size: 15px; }
+.exploration > .field-help { max-width: 72ch; line-height: 1.7; }
+.navigation-map { margin-top: 22px; }
+.navigation-map summary { cursor: pointer; padding: 10px 0; font-size: 14px; }
+.navigation-map summary:hover { color: var(--amber); }
+.destination-list { list-style: none; padding: 0; margin: 8px 0 0; }
+.destination-list > li {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+.destination-route { display: flex; flex-direction: column; gap: 7px; min-width: 0; font-size: 13px; }
+.destination-source { color: var(--muted); overflow-wrap: anywhere; }
+.destination-url { font-family: monospace; overflow-wrap: anywhere; font-size: 13px; }
+.destination-result { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
+.destination-outcome { font-size: 12px; text-transform: capitalize; }
+.destination-outcome.failed { color: var(--danger); }
+.destination-outcome.skipped { color: var(--muted); }
+.destination-result .text-link { font-size: 12px; }
+.reproduction-steps { margin: 0; padding-left: 20px; }
+.reproduction-steps li + li { margin-top: 8px; }
+@media (max-width: 760px) {
+  .destination-list > li { flex-direction: column; gap: 12px; }
+  .destination-result { flex-direction: row; align-items: center; justify-content: space-between; }
+}

@@ -4,6 +4,9 @@ import { buildApp } from "../src/app.js";
 import { validateReport } from "../src/gemini.js";
 import type { StoredRun, Repository } from "../src/repository.js";
 class Memory implements Repository {
+  async listExpired(before: string, limit: number) {
+    return (await this.list()).filter(run => Date.parse(run.expiresAt) <= Date.parse(before)).slice(0, limit).map(run => run.id);
+  }
   charges = 0;
   async charge() {
     return ++this.charges <= 5;
@@ -251,6 +254,8 @@ test("real collector saves evidence and events before report generation", async 
     analyze: async (evidence) => {
       assert.equal(evidence.length, 2);
       assert.equal(repo.shots.size, 2);
+      assert.equal([...repo.runs.values()][0].exploration?.attempted, 3);
+      assert.equal([...repo.runs.values()][0].exploration?.failed, 1);
       assert.equal(
         [...repo.runs.values()][0].events.filter(
           (e) => e.type === "page_captured",
@@ -277,6 +282,8 @@ test("real collector saves evidence and events before report generation", async 
   assert.equal(run.status, "partial");
   assert.ok(run.report);
   assert.equal(run.evidence.length, 2);
+  assert.equal(run.exploration?.captured, 2);
+  assert.equal(run.report?.findings[0]?.kind, "observed");
   await app.close();
 });
 test("daily budget exhaustion rejects work before collector starts", async () => {
@@ -414,4 +421,24 @@ test("ownership and expiry guard every resource mutation and read", async () => 
     [],
   );
   await app.close();
+});
+
+test("startup cleanup runs without blocking health and close drains its current deletion", async () => {
+  const repo = new Memory();
+  let release!: () => void;
+  let deleting!: () => void;
+  const started = new Promise<void>(resolve => { deleting = resolve; });
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  repo.listExpired = async () => ["expired"];
+  repo.remove = async () => { deleting(); await gate; };
+  const app = buildApp({ repository: repo, authenticate: async () => "alice" });
+  assert.equal((await app.inject("/health")).statusCode, 200);
+  await started;
+  let closed = false;
+  const closing = app.close().then(() => { closed = true; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(closed, false);
+  release();
+  await closing;
+  assert.equal(closed, true);
 });

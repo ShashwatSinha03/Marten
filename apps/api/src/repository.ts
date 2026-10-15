@@ -9,6 +9,7 @@ export interface StoredRun extends Investigation {
 export interface Repository {
   charge(): Promise<boolean>;
   list(): Promise<StoredRun[]>;
+  listExpired(before: string, limit: number): Promise<string[]>;
   put(run: StoredRun): Promise<void>;
   remove(id: string): Promise<void>;
   upload(id: string, page: string, bytes: Buffer): Promise<void>;
@@ -59,6 +60,16 @@ export function supabaseConfiguration() {
           )
         ).json()
       ).map((row: { data: StoredRun }) => row.data);
+    },
+    async listExpired(before, limit) {
+      const query = new URLSearchParams({
+        select: "id",
+        expires_at: `lte.${before}`,
+        order: "expires_at.asc,id.asc",
+        limit: String(Math.max(1, Math.min(25, Math.floor(limit)))),
+      });
+      const rows = await (await request(`/rest/v1/marten_runs?${query}`)).json();
+      return rows.map((row: { id: string }) => row.id);
     },
     async put(run) {
       await request("/rest/v1/marten_runs?on_conflict=id", {
