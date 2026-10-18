@@ -1,3 +1,4 @@
+import { readProbeMemory } from "./probe-memory.js";
 import type { Exploration, NavigationDestination } from "../../../packages/contracts/src/index.js";
 import { chromium, type Browser } from "playwright";
 import { appendFile, mkdir, writeFile, rename } from "node:fs/promises";
@@ -281,12 +282,14 @@ export async function runFixtureProbe(options: Options = {}) {
     state,
     blockedRequests,
     offOriginRequestsReceived: fixture?.offOriginRequestsReceived() ?? 0,
+    offOriginRequestDiagnostics: fixture?.offOriginRequestDiagnostics() ?? [],
     pages,
     error,
     elapsedMs: Date.now() - started,
     browserClosed: !browser?.isConnected(),
     peakNodeRssBytes,
     peakProcessTreeRssBytes,
+    cgroupMemory: await readProbeMemory(),
     memoryMeasurement:
       "Sampled ps RSS sum of Node and descendants; shared pages may be counted multiple times; not container peak memory.",
     scope: "controlled-fixture-only",

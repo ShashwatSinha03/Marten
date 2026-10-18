@@ -18,8 +18,17 @@ async function close(server: Server) {
 }
 export async function startFixture() {
   let offOriginRequestsReceived = 0;
-  const offOrigin = createServer((_request, response) => {
+  const diagnostics: { method: string; path: string }[] = [];
+  const offOrigin = createServer((request, response) => {
     offOriginRequestsReceived++;
+    if (diagnostics.length < 10) {
+      // Fixed labels only: never expose headers, query strings or unknown paths.
+      const pathname = (request.url ?? "").split("?")[0];
+      diagnostics.push({
+        method: ["GET", "HEAD", "POST", "OPTIONS"].includes(request.method ?? "") ? request.method! : "other",
+        path: ["/", "/health", "/favicon.ico", "/must-be-blocked", "/external"].includes(pathname) ? pathname : "other",
+      });
+    }
     response.end("Unexpected request");
   });
   const offOriginUrl = await listen(offOrigin);
@@ -39,6 +48,7 @@ export async function startFixture() {
     return {
       origin,
       offOriginRequestsReceived: () => offOriginRequestsReceived,
+      offOriginRequestDiagnostics: () => diagnostics.map(entry => ({ ...entry })),
       close: async () => {
         await close(server);
         await close(offOrigin);
