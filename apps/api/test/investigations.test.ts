@@ -40,17 +40,23 @@ test("unconfigured API fails closed", async () => {
   assert.equal((await app.inject("/v1/investigations")).statusCode, 503);
   await app.close();
 });
-test("identity, scope, global busy, ownership and cancellation", async () => {
+test("identity, scope, global busy, ownership and cancellation", { timeout: 5000 }, async () => {
   const repo = new Memory();
+  let cancellationSaved!: () => void;
+  const cancelled = new Promise<void>(resolve => { cancellationSaved = resolve; });
+  const put = repo.put.bind(repo);
+  repo.put = async run => {
+    await put(run);
+    if (run.status === "cancelled") cancellationSaved();
+  };
   const app = buildApp({
     repository: repo,
     authenticate: async (token) => token,
     collect: async (options) => {
-      await new Promise<void>((resolve) =>
-        options.signal!.addEventListener("abort", () => resolve(), {
-          once: true,
-        }),
-      );
+      await new Promise<void>((resolve) => {
+        if (options.signal!.aborted) return resolve();
+        options.signal!.addEventListener("abort", () => resolve(), { once: true });
+      });
       return { state: "cancelled", pages: [] };
     },
     analyze: async () => ({ summary: "ok", findings: [], limitations: [] }),
@@ -106,7 +112,8 @@ test("identity, scope, global busy, ownership and cancellation", async () => {
     ).statusCode,
     200,
   );
-  await new Promise((r) => setTimeout(r, 10));
+  // Observe persisted completion rather than guessing CI scheduling latency.
+  await cancelled;
   assert.equal(repo.runs.get(id)?.status, "cancelled");
   assert.ok(!JSON.stringify([...repo.runs.values()]).includes("secret-key"));
   const run = repo.runs.get(id)!;

@@ -128,7 +128,7 @@ export async function runFixtureProbe(options: Options = {}) {
       state = "cancelled";
       return true;
     }
-    if (Date.now() - started >= durationMs) {
+    if (state === "timed_out" || Date.now() - started >= durationMs) {
       state = "timed_out";
       return true;
     }
@@ -196,14 +196,15 @@ export async function runFixtureProbe(options: Options = {}) {
           exploration.attempted++;
           await event({ type: "page_started", url });
           let captured = false;
+          let navigating = true;
+          const remainingMs = Math.max(1, durationMs - (Date.now() - started));
+          const deadlineLimitsNavigation = remainingMs <= navigationTimeoutMs;
           try {
             const response = await page.goto(url, {
               waitUntil: "domcontentloaded",
-              timeout: Math.min(
-                navigationTimeoutMs,
-                Math.max(1, durationMs - (Date.now() - started)),
-              ),
+              timeout: Math.min(navigationTimeoutMs, remainingMs),
             });
+            navigating = false;
             const id = `page-${pages.length + 1}`;
             const screenshot = `${id}.png`;
             const text = (
@@ -243,6 +244,11 @@ export async function runFixtureProbe(options: Options = {}) {
             sample();
             await event({ type: "page_captured", pageId: id, url });
           } catch (cause) {
+            // Playwright's clock can expire the clipped budget before Date.now()
+            // crosses the run deadline. Attribute that timeout to its actual cap.
+            if (navigating && deadlineLimitsNavigation && cause instanceof Error && cause.name === "TimeoutError") {
+              state = "timed_out";
+            }
             if (stopped()) {
               destination.outcome = "failed";
               destination.reason = state === "cancelled" ? "cancelled" : "deadline";
