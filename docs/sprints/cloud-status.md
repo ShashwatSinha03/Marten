@@ -52,3 +52,10 @@ CI for `8f4a43b` found two timing races: clipped navigation deadlines could be m
 - Existing Render isolation gate (`HEAD /` received by off-origin fixture), sequential probes and public egress validation remain unresolved. Fixture-only restriction stays enabled.
 
 Storage credential provisioning: a branch-scoped credential with read/write permissions only has been created for the private evidence integration. The user authorized configuring Render credentials. Database/storage connection provisioning is in progress; no successful live connection or investigation acceptance is claimed. Credential values are not stored in this record.
+
+## Credential and OAuth configuration checkpoint — 2026-10-20
+
+- All seven Neon variables and exact `FRONTEND_ORIGIN` saved on Render. Saved settings are not proof of a live database/storage connection; deployment and acceptance remain pending.
+- GitHub OAuth application `3949583` registered; provider configuration saved in Neon. Production frontend trusted origin saved.
+- Frontend sign-in now offers GitHub only; Google is deferred rather than displayed without configured credentials.
+- Vercel auth environment configuration and live sign-in → investigation → evidence/report acceptance remain pending. No credential values are included here.

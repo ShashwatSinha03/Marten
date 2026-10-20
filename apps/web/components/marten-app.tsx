@@ -119,7 +119,7 @@ export function MartenApp({ authConfigured }: { authConfigured: boolean }) {
     setHistoryLoading(false);
     window.scrollTo({ top: 0 });
   }
-  async function signIn(provider: "github" | "google") {
+  async function signIn() {
     setApiKey("");
     if (!authConfigured) {
       setError(
@@ -135,7 +135,7 @@ export function MartenApp({ authConfigured }: { authConfigured: boolean }) {
     setAuthPending(true);
     try {
       const { error } = await authClient.signIn.social({
-        provider,
+        provider: "github",
         callbackURL: `${window.location.origin}/auth/callback`,
       });
       if (error) throw error;
@@ -456,17 +456,9 @@ export function MartenApp({ authConfigured }: { authConfigured: boolean }) {
                         type="button"
                         className="button subtle"
                         disabled={authPending}
-                        onClick={() => signIn("github")}
+                        onClick={() => signIn()}
                       >
                         Continue with GitHub
-                      </button>
-                      <button
-                        type="button"
-                        className="button subtle"
-                        disabled={authPending}
-                        onClick={() => signIn("google")}
-                      >
-                        Continue with Google
                       </button>
                     </div>
                     {!configured && (
