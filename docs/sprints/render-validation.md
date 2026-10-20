@@ -8,7 +8,7 @@ Status: deployment procedure, not a recorded pass. Checked official docs on 2026
 2. In Render select **New → Web Service**, connect that repository and sprint branch, choose **Docker**, and select **Free** compute. Use the actual committed Dockerfile path. Keep its default command unless the harness README explicitly supplies a probe-and-health command. Do not add a disk, database, paid worker, or registry subscription. [Docker deployment](https://render.com/docs/docker)
 3. The harness must expose only health on `0.0.0.0:$PORT`, while its test fixture binds loopback. Configure the health path actually implemented by the harness. [Web service requirements](https://render.com/docs/web-services)
 4. Enable the documented **startup-once fixture probe** if implemented. If the implementation has no startup probe or documented command that runs the probe and then keeps health serving, stop and add that reviewed capability before deploying; do not invent an environment switch. Free services have no shell or one-off jobs. No public probe trigger or supplied-URL endpoint is needed. [Free restrictions](https://render.com/docs/free)
-5. Use no Gemini, Supabase, or other application credentials for this probe. Capture deploy/runtime logs and the actual Free compute allocation shown in the dashboard. A successful image build or green health check is not a successful browser probe.
+5. Use no Gemini, Neon, or other application credentials for this probe. Capture deploy/runtime logs and the actual Free compute allocation shown in the dashboard. A successful image build or green health check is not a successful browser probe.
 
 ## Measurements and gates
 

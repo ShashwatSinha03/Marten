@@ -54,8 +54,8 @@ jobs:
         run: node --import tsx --test --test-concurrency=1 apps/api/test/*.test.ts
       - name: Frontend typecheck
         run: pnpm web:typecheck
-      - name: Frontend request boundary tests
-        run: node --import tsx --test apps/web/lib/request.test.ts
+      - name: Frontend library tests
+        run: node --import tsx --test apps/web/lib/*.test.ts
       - name: Frontend production build
         run: pnpm web:build
       - name: Backend container build

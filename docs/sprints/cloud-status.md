@@ -1,4 +1,4 @@
-# Cloud setup checkpoint — updated 2026-10-19
+# Cloud setup checkpoint — updated 2026-10-20
 
 ## Published
 
@@ -33,10 +33,22 @@ Cgroup v2 reported lifetime peak 294,621,184 bytes against a 536,870,912-byte li
 
 Vercel Hobby frontend deployed successfully: https://marten-iota.vercel.app, project `marten`, root `apps/web`, Next.js, source `8f4a43b`. Live browser verification confirmed the homepage and honest setup-pending sign-in state. No Supabase integration added.
 
-CI for `8f4a43b` found two timing races: clipped navigation deadlines could be mislabeled, and a cancellation test used a fixed sleep. Follow-up fixes preserve timeout attribution and await persisted cancellation. All 41 serial API tests and backend typecheck passed locally after those fixes; remote CI must verify the follow-up commit.
+CI for `8f4a43b` found two timing races: clipped navigation deadlines could be mislabeled, and a cancellation test used a fixed sleep. Follow-up commit `3531336` preserves timeout attribution and awaits persisted cancellation. All 41 serial API tests and backend typecheck passed locally; full remote CI passed: https://github.com/ShashwatSinha03/Marten/actions/runs/39160349894. Render deployed the follow-up successfully at 01:18:26 Asia/Kolkata with startup probes disabled.
 
 ## Remaining setup
 
-- Vercel: frontend live; authentication and backend environment integration pending dedicated Supabase setup.
+- Vercel: frontend live; authentication and backend environment integration pending Neon credentials/OAuth and deployment of the migration.
 - Supabase: both existing active free projects (FrontDeskOS and Surge) are needed and remain unchanged. A dedicated Marten project has not been created because the account's two active free slots are occupied. No migrations or credentials applied.
-- Startup probe flag saved as false after diagnostic collection; apply through the next deployment. No additional probe runs should be automatic.
+- Startup probe flag verified false and applied through the final deployment. No additional probe runs should be automatic.
+
+## Neon migration — 2026-10-20
+
+- Dedicated Neon Free project: `patient-boat-69691632`, production branch `br-flat-tree-b4cjowep`, AWS Ohio (`us-east-2`), PostgreSQL 18. No paid upgrade selected.
+- Managed auth user ID inspected through `information_schema.columns`: `neon_auth.user.id` is `uuid`.
+- `neon/schema.sql` applied successfully to the new project: Marten run/usage tables, nullable owner FK with `ON DELETE SET NULL`, indexes and RLS. Existing Supabase projects remain unchanged.
+- Private object-storage bucket `marten-evidence` created. Storage credentials are branch-scoped, not user- or bucket-scoped; Marten's API must enforce ownership and expiry.
+- Local migration replaces Supabase with parameterized PostgreSQL, managed-auth JWT verification and private S3-compatible screenshots. All 46 API tests and backend typecheck passed locally before integration review. These checks do not establish live auth, storage permissions or database concurrency acceptance.
+- **Migration is not live.** Provider credentials, Google/GitHub OAuth, Vercel/Render environment configuration, reviewed deployment and hosted two-user acceptance remain pending. The hosted frontend remains a preview.
+- Existing Render isolation gate (`HEAD /` received by off-origin fixture), sequential probes and public egress validation remain unresolved. Fixture-only restriction stays enabled.
+
+Storage credential provisioning: a branch-scoped credential with read/write permissions only has been created for the private evidence integration. The user authorized configuring Render credentials. Database/storage connection provisioning is in progress; no successful live connection or investigation acceptance is claimed. Credential values are not stored in this record.

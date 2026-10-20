@@ -1,4 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { authClient } from "./auth-client";
+import { requireAccessToken } from "./auth-token";
 import { boundedRequest, RequestError } from "./request";
 export { RequestError } from "./request";
 import type {
@@ -14,33 +15,23 @@ export type {
   Finding,
 } from "../../../packages/contracts/src/index";
 export { FIXTURE_URL } from "../../../packages/contracts/src/index";
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-export const supabase =
-  url && key ? createClient(url, key, { auth: { flowType: "pkce" } }) : null;
 const api = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-export const configured = Boolean(supabase && api);
+export const apiConfigured = Boolean(api);
 async function request<T>(path: string, init: RequestInit = {}, format: "json" | "blob" | "empty" = "json"): Promise<T> {
-  if (!supabase || !api)
+  if (!api)
     throw new RequestError(
       "NOT_CONFIGURED",
-      "The workspace is not connected yet. Configure Supabase and the API to start investigations.",
+      "The workspace is not connected yet. Configure authentication and the API to start investigations.",
     );
-  const auth = supabase.auth;
   return boundedRequest(async (signal) => {
-    const { data } = await auth.getSession();
-    if (!data.session)
-      throw new RequestError(
-        "UNAUTHORIZED",
-        "Your session has expired. Sign in again to continue.",
-      );
+    const token = await requireAccessToken((options) => authClient.token(options), signal);
     const response = await fetch(`${api}/v1/investigations${path}`, {
       ...init,
       signal,
       cache: "no-store",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${data.session.access_token}`,
+        Authorization: `Bearer ${token}`,
         ...init.headers,
       },
   });

@@ -1,93 +1,60 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { supabaseConfiguration } from "../src/repository.js";
+import { createNeonRepository } from "../src/neon-repository.js";
 
-for (const key of ["sb_secret_test", "eyJtest.payload.signature"]) {
-  test(`Supabase transport uses the correct authorization for ${key.startsWith("sb_") ? "modern" : "legacy"} keys`, async (context) => {
-    const originalUrl = process.env.SUPABASE_URL;
-    const originalKey = process.env.SUPABASE_SECRET_KEY;
-    process.env.SUPABASE_URL = "https://test.supabase.co";
-    process.env.SUPABASE_SECRET_KEY = key;
-    context.after(() => {
-      if (originalUrl === undefined) delete process.env.SUPABASE_URL;
-      else process.env.SUPABASE_URL = originalUrl;
-      if (originalKey === undefined) delete process.env.SUPABASE_SECRET_KEY;
-      else process.env.SUPABASE_SECRET_KEY = originalKey;
-    });
-    const paths: string[] = [];
-    context.mock.method(
-      globalThis,
-      "fetch",
-      async (url: string, init: RequestInit) => {
-        const headers = new Headers(init.headers);
-        const path = new URL(url).pathname;
-        paths.push(path);
-        assert.equal(headers.get("apikey"), key);
-        assert.equal(
-          headers.get("Authorization"),
-          path === "/auth/v1/user"
-            ? "Bearer user-token"
-            : key.startsWith("sb_secret_")
-              ? null
-              : `Bearer ${key}`,
-        );
-        return new Response(
-          JSON.stringify(
-            path === "/auth/v1/user"
-              ? { id: "alice" }
-              : path.startsWith("/rest/")
-                ? []
-                : {},
-          ),
-        );
-      },
-    );
-    const config = supabaseConfiguration()!;
-    await config.repository.list();
-    await config.repository.upload("run", "page-1", Buffer.from("png"));
-    assert.equal(await config.authenticate("user-token"), "alice");
-    assert.equal(paths.length, 3);
-  });
-}
+test("SQL owner overrides stale serialized owner, including null", async () => {
+  const repo = createNeonRepository({ query: async () => ({ rows: [{ data: { ownerId: "old" }, owner_id: null, created_at: "2026-01-01", expires_at: "2026-01-08" }] }) }, {} as never, "private");
+  assert.equal((await repo.list())[0].ownerId, null);
+});
 
-test("expired query is independent of history cap and deletion keeps metadata until storage succeeds", async (context) => {
-  const originalUrl = process.env.SUPABASE_URL;
-  const originalKey = process.env.SUPABASE_SECRET_KEY;
-  process.env.SUPABASE_URL = "https://test.supabase.co";
-  process.env.SUPABASE_SECRET_KEY = "sb_secret_test";
-  context.after(() => {
-    if (originalUrl === undefined) delete process.env.SUPABASE_URL;
-    else process.env.SUPABASE_URL = originalUrl;
-    if (originalKey === undefined) delete process.env.SUPABASE_SECRET_KEY;
-    else process.env.SUPABASE_SECRET_KEY = originalKey;
-  });
-  let storageFails = true;
-  let databaseFails = true;
-  const deletions: string[] = [];
-  context.mock.method(globalThis, "fetch", async (input: string, init: RequestInit) => {
-    const url = new URL(input);
-    if (init.method !== "DELETE") {
-      assert.equal(url.searchParams.get("select"), "id");
-      assert.equal(url.searchParams.get("expires_at"), "lte.2026-10-11T00:00:00.000Z");
-      assert.equal(url.searchParams.get("order"), "expires_at.asc,id.asc");
-      assert.equal(url.searchParams.get("limit"), "25");
-      return new Response(JSON.stringify([{ id: "old-expired" }]));
-    }
-    if (url.pathname.startsWith("/storage/")) {
-      deletions.push("storage");
-      assert.deepEqual(JSON.parse(init.body as string).prefixes, ["old-expired/page-1.png", "old-expired/page-2.png", "old-expired/page-3.png"]);
-      return new Response("{}", { status: storageFails ? 503 : 200 });
-    }
-    deletions.push("database");
-    return new Response("{}", { status: databaseFails ? 503 : 200 });
-  });
-  const repo = supabaseConfiguration()!.repository;
-  assert.deepEqual(await repo.listExpired("2026-10-11T00:00:00.000Z", 1000), ["old-expired"]);
-  await assert.rejects(repo.remove("old-expired"));
-  assert.deepEqual(deletions, ["storage"]);
-  storageFails = false;
-  await assert.rejects(repo.remove("old-expired"));
-  databaseFails = false;
-  await repo.remove("old-expired");
-  assert.deepEqual(deletions, ["storage", "storage", "database", "storage", "database"]);
+test("expired lookup clamps batch and parameterizes timestamp", async () => {
+  const repo = createNeonRepository({ query: async (sql, values) => {
+    assert.match(sql, /expires_at <= \$1/);
+    assert.deepEqual(values, ["2026-10-19T00:00:00Z", 25]);
+    return { rows: [{ id: "expired" }] };
+  } }, {} as never, "private");
+  assert.deepEqual(await repo.listExpired("2026-10-19T00:00:00Z", 999), ["expired"]);
+});
+
+test("quota is one atomic conflict-conditional query and returns exhausted", async () => {
+  const repo = createNeonRepository({ query: async (sql) => {
+    assert.match(sql, /on conflict \(day\) do update/i);
+    assert.match(sql, /attempts < 5/);
+    assert.match(sql, /UTC/);
+    return { rows: [] };
+  } }, {} as never, "private");
+  assert.equal(await repo.charge(), false);
+});
+
+test("object deletion failure or partial failure retains database metadata", async () => {
+  let deleted = false;
+  let failure: "throw" | "partial" | "none" = "throw";
+  let calls = 0;
+  const repo = createNeonRepository({ query: async () => { deleted = true; return { rows: [] }; } }, { send: async () => {
+    if (failure === "throw") throw new Error("credentials must not escape");
+    if (failure === "partial" && ++calls === 2) throw new Error("partial failure");
+    return {};
+  } }, "private");
+  await assert.rejects(repo.remove("run"), /STORAGE_UNAVAILABLE/);
+  assert.equal(deleted, false);
+  failure = "partial";
+  await assert.rejects(repo.remove("run"), /STORAGE_UNAVAILABLE/);
+  assert.equal(deleted, false);
+  failure = "none";
+  await repo.remove("run");
+  assert.equal(deleted, true);
+});
+
+test("upsert cannot resurrect deleted owner and does not serialize ownership", async () => {
+  const repo = createNeonRepository({ query: async (sql, values) => {
+    assert.doesNotMatch(sql.split(/do update/i)[1], /owner_id\s*=/);
+    assert.equal(JSON.parse(values![4] as string).ownerId, undefined);
+    return { rows: [] };
+  } }, {} as never, "private");
+  await repo.put({ id: "id", ownerId: "deleted", createdAt: "date", expiresAt: "date" } as never);
+});
+
+test("authoritative SQL expiry overrides serialized future expiry", async () => {
+  const repo = createNeonRepository({ query: async () => ({ rows: [{ data: { expiresAt: "2099-01-01" }, owner_id: "owner", created_at: "2026-01-01", expires_at: "2026-01-08" }] }) }, {} as never, "private");
+  assert.equal((await repo.list())[0].expiresAt, "2026-01-08T00:00:00.000Z");
 });
