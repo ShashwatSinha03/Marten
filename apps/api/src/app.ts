@@ -13,11 +13,12 @@ import {
 import { runFixtureProbe, type Options } from "./collector.js";
 import { analyzeEvidence, configuredModel, groundReport } from "./gemini.js";
 import {
-  supabaseConfiguration,
   type Repository,
   type StoredRun,
 } from "./repository.js";
+import { neonConfiguration } from "./neon-config.js";
 interface Dependencies {
+  close?: () => Promise<void>;
   repository: Repository;
   authenticate: (token: string) => Promise<string | null>;
   collect?: (options: Options) => Promise<{
@@ -34,7 +35,7 @@ interface Dependencies {
 }
 const activeStatuses = ["collecting", "analyzing"];
 export function buildApp(
-  deps: Dependencies | undefined = supabaseConfiguration(),
+  deps: Dependencies | undefined = neonConfiguration(),
 ) {
   const app = Fastify({ logger: false, bodyLimit: 8192 });
   let active:
@@ -86,6 +87,7 @@ export function buildApp(
   app.addHook("onClose", async () => {
     active?.controller.abort();
     await Promise.all([retention?.stop(), active?.task]);
+    await deps?.close?.();
   });
   app.register(
     async (api) => {

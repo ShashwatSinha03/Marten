@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
+import { authClient } from "../lib/auth-client";
 import {
   client,
-  configured,
+  apiConfigured,
   FIXTURE_URL,
-  supabase,
   type Investigation,
 } from "../lib/client";
 import { Workspace, ReportView } from "./workspace";
@@ -49,8 +48,10 @@ const errorText = (error: unknown) =>
     ? error.message
     : "Something went wrong. Please try again.";
 
-export function MartenApp() {
-  const [session, setSession] = useState<Session | null>(null);
+export function MartenApp({ authConfigured }: { authConfigured: boolean }) {
+  const authState = authClient.useSession();
+  const session = authConfigured && !authState.error ? authState.data : null;
+  const configured = authConfigured && apiConfigured;
   const [view, setView] = useState<
     "home" | "start" | "sample" | "history" | "run"
   >("home");
@@ -88,29 +89,26 @@ export function MartenApp() {
         /* discard invalid non-secret draft */
       }
     }
-    if (!supabase) return;
-    const auth = supabase.auth;
-    void auth.getSession().then(({ data, error }) => {
-      account.current = data.session?.user.id ?? null;
-      setSession(data.session);
-      if (error) setError("Sign-in could not be completed. Please try again.");
-    }).catch(() => setError("Sign-in could not be checked. Check your connection and try signing in again."));
-    const { data: subscription } = auth.onAuthStateChange((_event, next) => {
-      const nextAccount = next?.user.id ?? null;
-      if (account.current !== nextAccount) {
-        account.current = nextAccount;
-        navigation.current++;
-        setRun(null);
-        setHistory([]);
-        setApiKey("");
-        setBusy(false);
-        setHistoryLoading(false);
-        if (!next) setView("start");
-      }
-      setSession(next);
-    });
-    return () => subscription.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (authConfigured && authState.error) setError("Sign-in could not be checked. Check your connection and try again.");
+  }, [authConfigured, authState.error]);
+
+  const userId = session?.user.id ?? null;
+  useEffect(() => {
+    if (account.current !== userId) {
+      const previous = account.current;
+      account.current = userId;
+      navigation.current++;
+      setRun(null);
+      setHistory([]);
+      setApiKey("");
+      setBusy(false);
+      setHistoryLoading(false);
+      if (previous && !userId) setView("start");
+    }
+  }, [userId]);
 
   function navigate(next: typeof view) {
     navigation.current++;
@@ -121,9 +119,9 @@ export function MartenApp() {
     setHistoryLoading(false);
     window.scrollTo({ top: 0 });
   }
-  async function signIn(provider: "github" | "google") {
+  async function signIn() {
     setApiKey("");
-    if (!supabase) {
+    if (!authConfigured) {
       setError(
         "Sign-in is not configured on this deployment. You can explore the sample report below.",
       );
@@ -136,9 +134,9 @@ export function MartenApp() {
     }
     setAuthPending(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: { redirectTo: window.location.origin },
+      const { error } = await authClient.signIn.social({
+        provider: "github",
+        callbackURL: `${window.location.origin}/auth/callback`,
       });
       if (error) throw error;
     } catch {
@@ -258,8 +256,9 @@ export function MartenApp() {
             <button
               className="button subtle small"
               onClick={async () => {
+                setApiKey("");
                 try {
-                  const result = await supabase?.auth.signOut();
+                  const result = await authClient.signOut();
                   if (result?.error) throw result.error;
                   navigate("home");
                 } catch {
@@ -457,23 +456,15 @@ export function MartenApp() {
                         type="button"
                         className="button subtle"
                         disabled={authPending}
-                        onClick={() => signIn("github")}
+                        onClick={() => signIn()}
                       >
                         Continue with GitHub
-                      </button>
-                      <button
-                        type="button"
-                        className="button subtle"
-                        disabled={authPending}
-                        onClick={() => signIn("google")}
-                      >
-                        Continue with Google
                       </button>
                     </div>
                     {!configured && (
                       <p className="config-note">
                         Workspace setup is pending. Sign-in and investigations
-                        become available when Supabase and the backend are
+                        become available when authentication and the backend are
                         connected.{" "}
                         <button
                           type="button"
