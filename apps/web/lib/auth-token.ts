@@ -1,11 +1,19 @@
 import { RequestError } from "./request";
-type TokenResult = { data: { token?: string } | null; error: unknown };
-export async function requireAccessToken(
-  token: (options: { fetchOptions: { signal: AbortSignal } }) => Promise<TokenResult>,
-  signal: AbortSignal,
-) {
-  const result = await token({ fetchOptions: { signal } });
-  if (result.error || !result.data?.token?.trim()) throw new RequestError("UNAUTHORIZED", "Your session has expired. Sign in again to continue.");
+
+// Neon SDK 0.6.0-beta shares /token with its session cache. Fetch the token
+// endpoint directly so a preceding useSession() cannot substitute a session.
+export async function requireAccessToken(fetchToken: typeof fetch, signal: AbortSignal) {
   signal.throwIfAborted();
-  return result.data.token;
+  const response = await fetchToken("/api/auth/token", {
+    method: "GET",
+    signal,
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  const body: unknown = response.ok ? await response.json().catch(() => null) : null;
+  signal.throwIfAborted();
+  if (!body || typeof body !== "object" || !("token" in body) || typeof body.token !== "string" || !body.token.trim()) {
+    throw new RequestError("UNAUTHORIZED", "Your session has expired. Sign in again to continue.");
+  }
+  return body.token;
 }

@@ -1,4 +1,3 @@
-import { authClient } from "./auth-client";
 import { requireAccessToken } from "./auth-token";
 import { boundedRequest, RequestError } from "./request";
 export { RequestError } from "./request";
@@ -24,7 +23,7 @@ async function request<T>(path: string, init: RequestInit = {}, format: "json" |
       "The workspace is not connected yet. Configure authentication and the API to start investigations.",
     );
   return boundedRequest(async (signal) => {
-    const token = await requireAccessToken((options) => authClient.token(options), signal);
+    const token = await requireAccessToken(fetch, signal);
     const response = await fetch(`${api}/v1/investigations${path}`, {
       ...init,
       signal,
